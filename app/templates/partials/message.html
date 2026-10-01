@@ -1,0 +1,26 @@
+{# One message in a request thread. `viewer` decides whether internal notes show; `atts` maps message id to files. #}
+{% set files = (atts or {}).get(m.id, []) %}
+<article class="msg {% if m.author_role == 'staff' %}from-us{% endif %} {% if m.internal %}internal{% endif %}">
+  <header>
+    <strong>{{ m.author or 'Someone' }}{% if m.author_role == 'staff' and viewer.role != 'staff' %} at SwyfTech{% endif %}</strong>
+    <time datetime="{{ m.created_at }}" title="{{ m.created_at | local_dt }}">{{ m.created_at | ago }}</time>
+    {% if m.internal %}<span class="tag">Internal note, client can't see this</span>{% endif %}
+  </header>
+  {% if m.body %}<div class="body">{{ m.body }}</div>{% endif %}
+  {% if files %}
+  <ul class="files">
+    {% for f in files %}
+    <li>
+      {% if f.filename.rsplit('.', 1)[-1].lower() in ('png', 'jpg', 'jpeg', 'gif', 'webp') %}
+        <a class="thumb" href="/attachments/{{ f.id }}?view=1" target="_blank" rel="noopener"><img src="/attachments/{{ f.id }}?view=1" alt="{{ f.filename }}" loading="lazy"></a>
+      {% endif %}
+      <a class="file" href="/attachments/{{ f.id }}"><span class="name">{{ f.filename }}</span> <span class="muted small">{{ f.size_bytes | filesize }}</span></a>
+      {% if viewer.role == 'staff' %}
+      <form method="post" action="/staff/attachments/{{ f.id }}/delete" class="inline-form" data-confirm="Delete {{ f.filename }}? This can't be undone.">
+        <input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn quiet small" type="submit">Delete</button></form>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</article>

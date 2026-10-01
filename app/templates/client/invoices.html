@@ -1,0 +1,21 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Invoices</h1><p>View, print and pay your SwyfTech invoices.</p></div></div>
+<section class="panel">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Invoice</th><th>Issued</th><th>Due</th><th class="num">Amount</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for inv in invoices %}
+      <tr><td><a href="/invoices/{{ inv.id }}"><strong>{{ inv.number }}</strong></a></td><td>{{ inv.issue_date | nice_date }}</td>
+        <td>{{ inv.due_date | nice_date }}</td><td class="num">{{ invoice_total(inv.id) | money }}</td><td>{{ m.inv_state(inv) }}</td></tr>
+    {% else %}
+      <tr><td colspan="5" class="empty">No invoices yet.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

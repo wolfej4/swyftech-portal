@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="htmx-config" content='{"includeIndicatorStyles": false, "allowEval": false}'>
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Client portal{% endblock %} | SwyfTech</title>
+  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png">
+  <link rel="stylesheet" href="/static/portal.css">
+  <script src="/static/htmx.min.js" defer></script>
+  <script src="/static/portal.js" defer></script>
+</head>
+<body hx-headers='{"X-CSRF-Token": "{{ csrf }}"}'>
+{% block body %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,30 @@
+{# Draft invoice line editor. Swapped in place by htmx. #}
+<div id="items-editor" class="panel">
+  <div class="panel-head"><h2>Lines</h2><strong>{{ invoice_total(inv.id) | money }}</strong></div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th><th><span class="sr-only">Remove</span></th></tr></thead>
+    <tbody>
+    {% for it in items %}
+      <tr>
+        <td>{{ it.description }}</td><td class="num">{{ '%g' % it.quantity }}</td><td class="num">{{ it.unit_cents | money }}</td>
+        <td class="num">{{ (it.quantity * it.unit_cents) | round | int | money }}</td>
+        <td class="num"><form method="post" action="/staff/invoices/{{ inv.id }}/items/{{ it.id }}/delete" hx-post="/staff/invoices/{{ inv.id }}/items/{{ it.id }}/delete" hx-target="#items-editor" hx-swap="outerHTML">
+          <input type="hidden" name="csrf_token" value="{{ csrf }}"><button class="btn quiet small" type="submit">Remove</button></form></td>
+      </tr>
+    {% else %}
+      <tr><td colspan="5" class="muted">Add the first line below, like "Managed IT, October" or "On-site labor".</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <form method="post" action="/staff/invoices/{{ inv.id }}/items" hx-post="/staff/invoices/{{ inv.id }}/items" hx-target="#items-editor" hx-swap="outerHTML" style="margin-top:1rem">
+    <input type="hidden" name="csrf_token" value="{{ csrf }}">
+    <div class="field-row">
+      <div class="field" style="grid-column: span 2"><label for="description">Description</label><input id="description" name="description" required {% if items %}autofocus{% endif %}></div>
+      <div class="field"><label for="quantity">Qty or hours</label><input id="quantity" name="quantity" type="number" step="0.25" min="0" value="1"></div>
+      <div class="field"><label for="unit_price">Rate ($)</label><input id="unit_price" name="unit_price" inputmode="decimal" placeholder="125.00" required></div>
+    </div>
+    <button class="btn secondary" type="submit">Add line</button>
+  </form>
+</div>

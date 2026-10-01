@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}On-site visits{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>On-site visits</h1><p>Book a time for SwyfTech to come to {{ company }}.</p></div>
+  <a class="btn" href="/visits/new">Book a visit</a>
+</div>
+<section class="panel">
+  <h2>Coming up</h2>
+  <ul class="rows">
+  {% for v in upcoming %}
+    <li><a class="row-link" href="/visits/{{ v.id }}">
+      <span><span class="title">{{ V.when(v.start_utc, v.end_utc) }}</span><br><span class="meta">{{ v.reason or 'Visit' }}</span></span>
+      <span class="row-right">{{ m.visit_status(v, V) }}</span></a></li>
+  {% else %}
+    <li class="empty">Nothing booked. <a href="/visits/new">Pick a time</a> when you need someone on site.</li>
+  {% endfor %}
+  </ul>
+</section>
+{% if past %}
+<section class="panel">
+  <h2>Earlier</h2>
+  <ul class="rows">
+  {% for v in past %}
+    <li><a class="row-link" href="/visits/{{ v.id }}"><span><span class="title">{{ V.when(v.start_utc, v.end_utc) }}</span><br><span class="meta">{{ v.reason or 'Visit' }}</span></span>
+      <span class="row-right">{% if v.status in ('requested', 'confirmed') %}<span class="pill resolved">Done</span>{% else %}{{ m.visit_status(v, V) }}{% endif %}</span></a></li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

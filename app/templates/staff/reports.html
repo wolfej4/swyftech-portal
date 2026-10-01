@@ -1,0 +1,46 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Monthly reports{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Monthly reports</h1><p>Review each client's report, add a note if you like, then send it to their Owners.</p></div>
+  <form class="toolbar" method="get" action="/staff/reports" style="margin:0">
+    <label for="mo" class="sr-only">Month</label>
+    <select id="mo" name="month">{% for mo, mo_label in months %}<option value="{{ mo }}" {% if mo == month %}selected{% endif %}>{{ mo_label }}</option>{% endfor %}</select>
+    <button class="btn secondary small" type="submit">Show</button>
+  </form>
+</div>
+<section class="panel">
+  <div class="panel-head"><h2>{{ month_label }}</h2>
+    {% if unsent %}<form method="post" action="/staff/reports/{{ month }}/send-all" data-confirm="Send {{ unsent }} {{ 'report' if unsent == 1 else 'reports' }} for {{ month_label }} now?">{{ m.csrf_field(csrf) }}<button class="btn small" type="submit">Send all {{ unsent }} unsent</button></form>{% endif %}
+  </div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Client</th><th class="num">Resolved</th><th>First reply</th><th class="num">Visits</th><th>Ratings</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for row in rows %}{% set d = row.data %}
+      <tr>
+        <td><a href="/staff/reports/{{ row.client.id }}/{{ month }}"><strong>{{ row.client.name }}</strong></a>{% if row.rec and row.rec.note %}<br><span class="muted small">Has a note</span>{% endif %}</td>
+        <td class="num">{{ d.requests.resolved }}</td><td>{{ d.requests.first_reply or '-' }}</td><td class="num">{{ d.visits.count }}</td>
+        <td>{% if d.ratings.total %}{{ d.ratings.great }}/{{ d.ratings.total }} Great{% else %}<span class="muted">None</span>{% endif %}</td>
+        <td>{% if row.rec and row.rec.sent_at %}<span class="pill paid">Sent {{ row.rec.sent_at | nice_date }}</span>
+            {% elif not row.owners %}<span class="pill closed">No owner to send to</span>
+            {% else %}<span class="pill draft">Draft</span>{% endif %}</td>
+      </tr>
+    {% else %}
+      <tr><td colspan="6" class="empty">No active clients.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+<section class="panel">
+  <h2>On the 1st of each month</h2>
+  <form method="post" action="/staff/reports/settings">
+    {{ m.csrf_field(csrf) }}<input type="hidden" name="month" value="{{ month }}">
+    <label class="check"><input type="checkbox" name="auto_send" value="1" {% if auto_send %}checked{% endif %}> Send last month's reports automatically</label>
+    <p class="muted small">When this is off, you get an email on the 1st saying they're ready to review.</p>
+    <button class="btn secondary small" type="submit">Save</button>
+  </form>
+</section>
+{% endblock %}

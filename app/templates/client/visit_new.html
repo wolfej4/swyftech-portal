@@ -1,0 +1,68 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Book a visit{% endblock %}
+{% block width %}page-narrow{% endblock %}
+{% block content %}
+<a class="crumb" href="/visits">On-site visits</a>
+<h1>Book a visit</h1>
+<p class="muted">Each visit is up to {{ (cfg_visits.slot_minutes / 60) | round(1) | string | replace('.0', '') }} {{ 'hour' if cfg_visits.slot_minutes == 60 else 'hours' }}. All times are {{ V.ZONE_LABEL }} time.{% if cfg_visits.require_confirmation %} We'll confirm by email.{% endif %}</p>
+{{ m.error(error) }}
+{% if not open_days %}
+<section class="panel"><p style="margin:0">There are no open times in the next {{ cfg_visits.window_days }} days. <a href="/tickets/new">Send a request</a> and we'll find a time with you{% if cfg.SUPPORT_PHONE %}, or call {{ cfg.SUPPORT_PHONE }}{% endif %}.</p></section>
+{% else %}
+
+{# Step 1: a GET form, so picking a date works even without JavaScript. #}
+<form class="panel" method="get" action="/visits/new">
+  <h2>1. Pick a date</h2>
+  {% if form and form.ticket_id %}<input type="hidden" name="ticket" value="{{ form.ticket_id }}">{% endif %}
+  <p class="cal-month">{{ V.months_label(weeks) }}</p>
+  <fieldset class="cal">
+    <legend class="sr-only">Date</legend>
+    <div class="cal-grid">
+      {% for dow in ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] %}<span class="cal-dow" aria-hidden="true">{{ dow }}</span>{% endfor %}
+      {% for week in weeks %}{% for c in week %}
+        {% set num = c.date.strftime('%b %-d') if c.date.day == 1 else c.date.day %}
+        {% if c.open %}
+          <label class="cal-cell open">
+            <input type="radio" name="day" value="{{ c.date.isoformat() }}" {% if chosen == c.date %}checked{% endif %}
+                   hx-get="/visits/new/times" hx-trigger="change" hx-target="#times" hx-swap="innerHTML">
+            <span aria-hidden="true">{{ num }}</span><span class="sr-only">{{ c.date.strftime('%A, %B %-d') }}</span>
+          </label>
+        {% elif c.in_range %}
+          <span class="cal-cell closed" title="No open times"><span aria-hidden="true">{{ num }}</span></span>
+        {% else %}
+          <span class="cal-cell out" aria-hidden="true"></span>
+        {% endif %}
+      {% endfor %}{% endfor %}
+    </div>
+  </fieldset>
+  <p class="muted small" style="margin:.75rem 0 0">Boxed dates have open times.</p>
+  <button class="btn secondary js-hide" type="submit" style="margin-top:.75rem">Show times</button>
+</form>
+
+{# Steps 2 and 3: the booking itself. #}
+<form method="post" action="/visits">
+  {{ m.csrf_field(csrf) }}
+  <section class="panel">
+    <h2>2. Pick a time</h2>
+    <div id="times" aria-live="polite">{% include "partials/visit_times.html" %}</div>
+  </section>
+  <section class="panel">
+    <h2>3. Details</h2>
+    {% if open_tickets %}
+    <div class="field"><label for="ticket_id">Is it about an open request?</label>
+      <select id="ticket_id" name="ticket_id"><option value="0">No, something new</option>
+      {% for t in open_tickets %}<option value="{{ t.id }}" {% if form and form.ticket_id == t.id %}selected{% endif %}>#{{ t.id }} {{ t.subject }}</option>{% endfor %}
+      </select></div>
+    {% endif %}
+    <div class="field"><label for="reason">What should we do while we're there?<span class="hint">For example, "Set up the new front desk PC and printer"</span></label>
+      <textarea id="reason" name="reason" style="min-height:6rem">{{ form.reason if form and form.reason else '' }}</textarea></div>
+    <div class="field"><label for="location">Where</label>
+      <textarea id="location" name="location" style="min-height:4rem">{{ form.location if form and form.location else client.address }}</textarea></div>
+    <div class="field"><label for="onsite_contact">Who should we ask for when we arrive?</label>
+      <input id="onsite_contact" name="onsite_contact" value="{{ form.onsite_contact if form and form.onsite_contact else user.name }}"></div>
+    <button class="btn big" type="submit">{{ 'Request this time' if cfg_visits.require_confirmation else 'Book this time' }}</button>
+  </section>
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Documents{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Documents</h1><p>Share files with one client, or with every client at once.</p></div></div>
+<section class="panel">
+  <h2>Upload</h2>
+  <form method="post" action="/staff/documents" enctype="multipart/form-data">
+    {{ m.csrf_field(csrf) }}
+    <div class="field-row">
+      <div class="field"><label for="dc">Share with</label><select id="dc" name="client_id"><option value="0">All clients</option>{% for c in all_clients %}<option value="{{ c.id }}" {% if c.id == preselect %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="dt">Title</label><input id="dt" name="title" required placeholder="Managed Services Agreement"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="dcat">Category</label><select id="dcat" name="category">{% for c in DOC_CATEGORIES %}<option>{{ c }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="dv">Who can see it</label><select id="dv" name="visibility"><option value="everyone">Everyone at the client</option><option value="billing">Owner and Billing only</option></select></div>
+    </div>
+    <div class="field"><label for="df">File<span class="hint">PDF, Office files, images, text or zip. Up to {{ cfg.MAX_UPLOAD_MB }} MB.</span></label><input id="df" type="file" name="upload" required></div>
+    <button class="btn" type="submit">Upload</button>
+  </form>
+</section>
+<section class="panel">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Document</th><th>Shared with</th><th>Visible to</th><th>Added</th><th><span class="sr-only">Delete</span></th></tr></thead>
+    <tbody>
+    {% for d in docs %}
+      <tr><td><a href="/documents/{{ d.id }}/download"><strong>{{ d.title }}</strong></a><br><span class="muted small">{{ d.category }}, {{ d.size_bytes | filesize }}</span></td>
+        <td>{{ d.client_name or 'All clients' }}</td><td>{{ 'Owner and Billing' if d.visibility == 'billing' else 'Everyone' }}</td><td class="small">{{ d.uploaded_at | nice_date }}</td>
+        <td class="num"><form method="post" action="/staff/documents/{{ d.id }}/delete" data-confirm="Delete {{ d.title }}?">{{ m.csrf_field(csrf) }}<button class="btn quiet small" type="submit">Delete</button></form></td></tr>
+    {% else %}
+      <tr><td colspan="5" class="empty">No documents yet. Start with your MSA template or an acceptable-use policy.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

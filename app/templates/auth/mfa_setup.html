@@ -1,0 +1,23 @@
+{% extends "auth_layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Protect your account{% endblock %}
+{% block form %}
+<h1>Protect your account</h1>
+<p class="muted">Each time you sign in, you'll also enter a code from your phone. That way a stolen password alone can't get anyone in.</p>
+{{ m.error(error) }}
+<ol class="steps">
+  <li>Install an authenticator app on your phone. <strong>Microsoft Authenticator</strong> and <strong>Google Authenticator</strong> are both free.</li>
+  <li>In the app, add an account and scan this code.
+    <div class="qr" role="img" aria-label="QR code for your authenticator app">{{ qr | safe }}</div>
+    <details><summary>Can't scan it?</summary><p class="small">Choose "enter a setup key" in the app and type this key:</p><span class="secret">{{ secret }}</span></details>
+  </li>
+  <li>Type the 6-digit code the app shows.
+    <form method="post" action="/setup-mfa">
+      {{ m.csrf_field(csrf) }}
+      <div class="field"><label for="code" class="sr-only">6-digit code</label>
+        <input id="code" class="code-input" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required></div>
+      <button class="btn big" type="submit">Turn on protection</button>
+    </form>
+  </li>
+</ol>
+{% endblock %}

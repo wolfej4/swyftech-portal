@@ -1,0 +1,7 @@
+{% extends "auth_layout.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block form %}
+<h1>{{ title }}</h1>
+<p>{{ message }}</p>
+<p>{% if link %}<a class="btn" href="{{ link[0] }}">{{ link[1] }}</a>{% else %}<a class="btn secondary" href="/login">Back to sign in</a>{% endif %}</p>
+{% endblock %}

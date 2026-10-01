@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Your team{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Your team</h1><p>Choose who from {{ company }} can use the portal and what each person sees.</p></div></div>
+{{ m.error(error) }}
+{% if invite_link %}
+<div class="notice link"><p>Email isn't set up yet, so send this invite link to {{ invite_email }} yourself. It works for 7 days.</p>
+  <div class="copy-box"><input id="invite-link" type="text" readonly value="{{ invite_link }}" aria-label="Invite link"><button class="btn secondary small" type="button" data-copy="#invite-link">Copy</button></div></div>
+{% endif %}
+<section class="panel">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Person</th><th>Access</th><th>Status</th><th><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+    {% for p in people %}
+      <tr>
+        <td><strong>{{ p.name or 'Invited' }}</strong>{% if p.id == user.id %} (you){% endif %}<br><span class="muted small">{{ p.email }}</span></td>
+        <td>
+          {% if p.id != user.id and p.active %}
+          <form method="post" action="/team/{{ p.id }}" class="toolbar" style="margin:0">
+            {{ m.csrf_field(csrf) }}<input type="hidden" name="action" value="role">
+            <label for="role-{{ p.id }}" class="sr-only">Access for {{ p.email }}</label>
+            <select id="role-{{ p.id }}" name="role">{% for r in ['owner','billing','member'] %}<option value="{{ r }}" {% if p.role == r %}selected{% endif %}>{{ ROLE_LABELS[r] }}</option>{% endfor %}</select>
+            <button class="btn quiet small" type="submit">Save</button>
+          </form>
+          {% else %}{{ ROLE_LABELS[p.role] }}{% endif %}
+        </td>
+        <td>{% if not p.active %}<span class="pill closed">Turned off</span>{% elif not p.password_hash %}<span class="pill waiting">Invite pending</span>{% else %}<span class="pill paid">Active</span>{% endif %}</td>
+        <td class="num">
+          {% if p.id != user.id %}
+            {% if p.active and not p.password_hash %}
+            <form method="post" action="/team/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" type="submit" name="action" value="resend">Resend invite</button></form>
+            {% endif %}
+            {% if p.active %}
+            <form method="post" action="/team/{{ p.id }}" class="inline-form" data-confirm="Turn off portal access for {{ p.email }}?">{{ m.csrf_field(csrf) }}<button class="btn quiet small" type="submit" name="action" value="disable">Turn off</button></form>
+            {% else %}
+            <form method="post" action="/team/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" type="submit" name="action" value="enable">Turn on</button></form>
+            {% endif %}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+<section class="panel">
+  <h2>Invite someone</h2>
+  <form method="post" action="/team/invite">
+    {{ m.csrf_field(csrf) }}
+    <div class="field-row">
+      <div class="field"><label for="inv-name">Name</label><input id="inv-name" name="name" value="{{ form.name if form else '' }}"></div>
+      <div class="field"><label for="inv-email">Email</label><input id="inv-email" name="email" type="email" required value="{{ form.email if form else '' }}"></div>
+    </div>
+    <fieldset><legend>What can they see?</legend>
+      <div class="choice-list">
+      {% for r in ['member','billing','owner'] %}
+        <label class="choice"><input type="radio" name="role" value="{{ r }}" {% if (form.role if form else 'member') == r %}checked{% endif %}> <span><strong>{{ ROLE_LABELS[r] }}</strong><br><span class="muted small">{{ ROLE_HELP[r] }}</span></span></label>
+      {% endfor %}
+      </div>
+    </fieldset>
+    <button class="btn" type="submit">Send invite</button>
+  </form>
+</section>
+{% endblock %}

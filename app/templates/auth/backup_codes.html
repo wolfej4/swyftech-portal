@@ -1,0 +1,16 @@
+{% extends "auth_layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Save your backup codes{% endblock %}
+{% block form %}
+<h1>Save your backup codes</h1>
+<p>If you lose your phone, each of these codes gets you in once. Print them or write them down and keep them somewhere safe. You won't see them again.</p>
+<ul class="codes">{% for c in codes %}<li>{{ c }}</li>{% endfor %}</ul>
+<div class="form-actions">
+  <button class="btn secondary" type="button" data-print>Print codes</button>
+  {% if action %}
+  <form method="post" action="{{ action }}">{{ m.csrf_field(csrf) }}<button class="btn" type="submit">I saved my codes</button></form>
+  {% else %}
+  <a class="btn" href="/account">I saved my codes</a>
+  {% endif %}
+</div>
+{% endblock %}

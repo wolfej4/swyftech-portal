@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Invoice {{ inv.number }}{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+  <a class="crumb" href="/invoices">Invoices</a>
+  <button class="btn secondary small" type="button" data-print>Print or save as PDF</button>
+</div>
+{% include "partials/invoice_doc.html" %}
+{% set total = invoice_total(inv.id) %}
+{% if inv.status == 'sent' %}
+<div class="amount-due no-print">
+  <div><div>Amount due by {{ inv.due_date | nice_date }}</div><div class="figure">{{ total | money }}</div></div>
+  {% if cfg.stripe_enabled() %}
+  <form method="post" action="/invoices/{{ inv.id }}/pay">{{ m.csrf_field(csrf) }}<button class="btn big" type="submit">Pay {{ total | money }}</button></form>
+  {% else %}
+  <p style="margin:0">Contact us to pay by check or bank transfer.</p>
+  {% endif %}
+</div>
+{% if cfg.stripe_enabled() %}<p class="small muted no-print" style="margin-top:.5rem">You'll pay on a secure Stripe page by card or bank account, then come right back here.</p>{% endif %}
+{% elif inv.status == 'paid' %}
+<div class="amount-due paid"><div><strong>Paid {{ inv.paid_at | local_dt('%b %-d, %Y') }}</strong>{% if inv.payment_method %} by {{ inv.payment_method }}{% endif %}. Thank you!</div><div class="figure">{{ total | money }}</div></div>
+{% elif inv.status == 'void' %}
+<div class="notice warn" style="margin-top:1rem"><p>This invoice was cancelled. You don't owe anything on it.</p></div>
+{% endif %}
+{% endblock %}

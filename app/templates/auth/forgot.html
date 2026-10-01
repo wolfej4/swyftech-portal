@@ -1,0 +1,12 @@
+{% extends "auth_layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Reset your password{% endblock %}
+{% block form %}
+<h1>Reset your password</h1>
+<p class="muted">We'll email you a link to choose a new one. Your authenticator app stays connected.</p>
+<form method="post" action="/forgot">
+  {{ m.csrf_field(csrf) }}
+  <div class="field"><label for="email">Email</label><input id="email" name="email" type="email" autocomplete="username" required autofocus></div>
+  <div class="form-actions"><button class="btn big" type="submit">Email me a link</button><a href="/login">Back to sign in</a></div>
+</form>
+{% endblock %}

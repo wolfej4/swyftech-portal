@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+{% block title %}{{ article.title }}{% endblock %}
+{% block content %}
+<a class="crumb" href="/help">How-to guides</a>
+<article class="panel prose">
+  <h1>{{ article.title }}</h1>
+  {% if not article.published %}<div class="notice warn"><p>Draft. Clients can't see this yet.</p></div>{% endif %}
+  {{ article.body_md | markdown }}
+  <p class="muted small" style="margin-top:2rem">Updated {{ article.updated_at | nice_date }}. Still stuck? <a href="/tickets/new">Send us a request</a>.</p>
+</article>
+{% endblock %}

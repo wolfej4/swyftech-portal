@@ -1,0 +1,78 @@
+{# A monthly report. Needs r (report data), note, author. Printable. #}
+<article class="report">
+  <header class="report-top">
+    <img src="/static/img/logo-160.png" alt="" width="72" height="72">
+    <div>
+      <div class="muted">IT report for {{ r.client }}</div>
+      <h1>{{ r.month_label }}</h1>
+    </div>
+  </header>
+
+  <div class="report-headline">{% for line in r.headline %}<p>{{ line }}</p>{% endfor %}</div>
+
+  {% if note %}
+  <section class="report-note">
+    <h2>A note from {{ author or cfg.BUSINESS_NAME }}</h2>
+    <p>{{ note }}</p>
+  </section>
+  {% endif %}
+
+  <div class="figures report-figures">
+    <div class="figure-card"><span class="v">{{ r.requests.resolved }}</span><span class="k">{{ 'Request' if r.requests.resolved == 1 else 'Requests' }} resolved</span></div>
+    <div class="figure-card"><span class="v">{{ r.requests.first_reply or 'None' }}</span><span class="k">Usual time to first reply</span></div>
+    <div class="figure-card"><span class="v">{{ r.requests.time_to_fix or 'None' }}</span><span class="k">Usual time to fix</span></div>
+    <div class="figure-card"><span class="v">{{ r.visits.count }}</span><span class="k">On-site {{ 'visit' if r.visits.count == 1 else 'visits' }}</span></div>
+  </div>
+
+  <section class="report-section">
+    <h2>Requests</h2>
+    <p>{{ r.requests.opened }} new {{ 'request' if r.requests.opened == 1 else 'requests' }}{% if r.requests.urgent %}, {{ r.requests.urgent }} urgent or high priority{% endif %}. {{ r.requests.resolved }} resolved. {{ r.requests.still_open }} still open at the end of the month.</p>
+    {% if r.requests.resolved_list %}
+    <ul class="report-list">{% for t in r.requests.resolved_list %}<li>{{ t.subject }}</li>{% endfor %}</ul>
+    {% if r.requests.resolved_more %}<p class="muted small">And {{ r.requests.resolved_more }} more.</p>{% endif %}
+    {% endif %}
+  </section>
+
+  {% if r.ratings.total %}
+  <section class="report-section">
+    <h2>Your feedback</h2>
+    <p>{{ r.ratings.great }} Great, {{ r.ratings.okay }} Okay, {{ r.ratings.not_good }} Not good.</p>
+    {% for c in r.ratings.comments %}<blockquote>"{{ c.comment }}"<span class="muted small">On "{{ c.subject }}"</span></blockquote>{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if r.visits.count %}
+  <section class="report-section">
+    <h2>On-site visits</h2>
+    <p>About {{ r.visits.hours }} on site.</p>
+    <ul class="report-list">{% for v in r.visits.list %}<li><strong>{{ v.when }}</strong>{% if v.reason %}: {{ v.reason }}{% endif %}</li>{% endfor %}</ul>
+  </section>
+  {% endif %}
+
+  {% if r.equipment %}
+  <section class="report-section">
+    <h2>Equipment</h2>
+    <p>{{ r.equipment.count }} devices on file.{% if r.equipment.expired %} {{ r.equipment.expired }} {{ 'is' if r.equipment.expired == 1 else 'are' }} past warranty.{% endif %}</p>
+    {% if r.equipment.ending %}
+    <p>Warranties ending in the next 3 months. Now's a good time to plan replacements:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Device</th><th>Used by</th><th>Warranty ends</th></tr></thead>
+      <tbody>{% for d in r.equipment.ending %}<tr><td>{{ d.name }} <span class="muted small">{{ d.tag }}</span></td><td>{{ d.who or 'Shared' }}</td><td>{{ d.date }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if r.billing.has_any and (not user or user.role in ('owner', 'billing', 'staff')) %}
+  <section class="report-section">
+    <h2>Billing</h2>
+    <dl class="report-billing">
+      <dt>Invoiced this month</dt><dd>{{ r.billing.invoiced }}</dd>
+      <dt>Paid this month</dt><dd>{{ r.billing.paid }}</dd>
+      <dt>Unpaid as of this report</dt><dd>{{ r.billing.outstanding }}</dd>
+    </dl>
+  </section>
+  {% endif %}
+
+  <p class="muted small report-foot">Prepared {{ r.generated_at | local_dt('%B %-d, %Y') }} by {{ cfg.BUSINESS_NAME }}. Questions? Reply to the email or <a href="/tickets/new">send a request</a>.</p>
+</article>

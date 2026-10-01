@@ -1,0 +1,23 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}{{ client.name }}, {{ r.month_label }}{% endblock %}
+{% block content %}
+<div class="page-head no-print"><a class="crumb" href="/staff/reports?month={{ month }}">Monthly reports</a><button class="btn secondary small" type="button" data-print>Print</button></div>
+<section class="panel no-print">
+  {% if rec and rec.sent_at %}
+    <p style="margin:0 0 .75rem"><span class="pill paid">Sent {{ rec.sent_at | local_dt }}</span> The client sees this exact copy. Sending again refreshes the numbers.</p>
+  {% else %}
+    <p style="margin:0 0 .75rem"><span class="pill draft">Draft</span> Numbers update live until you send it.{% if not owners %} This client has no Owner with a login yet, so there's no one to email.{% endif %}</p>
+  {% endif %}
+  <form method="post" action="/staff/reports/{{ client.id }}/{{ month }}/send">
+    {{ m.csrf_field(csrf) }}
+    <div class="field"><label for="note">Personal note<span class="hint">Optional. Shown near the top, like "Next month we'll swap out the front desk PC."</span></label>
+      <textarea id="note" name="note" style="min-height:5rem">{{ note }}</textarea></div>
+    <div class="form-actions">
+      <button class="btn" type="submit">{{ 'Send again' if rec and rec.sent_at else 'Send to ' ~ (owners | join(', ') if owners else 'the portal') }}</button>
+      <button class="btn secondary" type="submit" formaction="/staff/reports/{{ client.id }}/{{ month }}/note">Save note only</button>
+    </div>
+  </form>
+</section>
+{% include "partials/report_body.html" %}
+{% endblock %}

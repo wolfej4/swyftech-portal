@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+{% block title %}Monthly reports{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Monthly reports</h1><p>A short summary of what SwyfTech did for {{ company }} each month.</p></div></div>
+<section class="panel">
+  <ul class="rows">
+  {% for i in items %}
+    <li><a class="row-link" href="/reports/{{ i.month }}"><span><span class="title">{{ i.label }}</span><br><span class="meta">{{ i.headline }}</span></span></a></li>
+  {% else %}
+    <li class="empty">Your first report arrives at the start of next month.</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

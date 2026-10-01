@@ -1,0 +1,85 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="status-line">
+  <p class="hello">Hi {{ (user.name or '').split(' ')[0] or 'there' }}, here's where things stand at {{ company }}.</p>
+  <h1>{% for line in summary %}<span>{{ line }}</span>{% endfor %}</h1>
+  <svg viewBox="0 0 420 28" preserveAspectRatio="none" aria-hidden="true"><path d="M2 24 Q 210 -8 418 18" fill="none" stroke="#0A9BFF" stroke-width="4" stroke-linecap="round"/></svg>
+</section>
+
+<div class="grid-2">
+  <div class="stack">
+    <section class="panel">
+      <div class="panel-head"><h2>{{ 'Open requests' if can('tickets.all') else 'Your open requests' }}</h2><a class="btn" href="/tickets/new">Ask for help</a></div>
+      <ul class="rows">
+      {% for t in open_tickets %}
+        <li><a class="row-link" href="/tickets/{{ t.id }}">
+          <span><span class="title">{{ t.subject }}</span><br><span class="meta">#{{ t.id }}, updated {{ t.updated_at | ago }}</span></span>
+          <span class="row-right">{{ m.status(t.status) }}</span></a></li>
+      {% else %}
+        <li class="empty">Nothing open. When something breaks or you need a hand, <a href="/tickets/new">send a request</a> and we'll take it from there.</li>
+      {% endfor %}
+      </ul>
+      {% if open_tickets %}<p class="small" style="margin:.75rem 0 0"><a href="/tickets">See all requests</a></p>{% endif %}
+    </section>
+  </div>
+
+  <div class="stack">
+    {% if can('visits') %}
+    <section class="panel">
+      <div class="panel-head"><h2>On-site visits</h2><a href="/visits">All visits</a></div>
+      {% if next_visit %}
+      <p style="margin:0"><a href="/visits/{{ next_visit.id }}"><strong>{{ V.when(next_visit.start_utc, next_visit.end_utc) }}</strong></a><br>
+        <span class="pill {{ 'paid' if next_visit.status == 'confirmed' else 'waiting' }}">{{ V.STATUS_LABELS[next_visit.status] }}</span></p>
+      {% else %}
+      <p style="margin:0">Nothing scheduled. <a href="/visits/new">Book a visit</a></p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if can('billing') %}
+    <section class="panel">
+      <div class="panel-head"><h2>Billing</h2><a href="/invoices">All invoices</a></div>
+      {% if unpaid %}
+        <p style="margin-bottom:.5rem"><strong style="font-size:1.4rem; font-family: var(--display)">{{ unpaid_total | money }}</strong> <span class="muted">unpaid</span></p>
+        <ul class="rows">
+        {% for inv in unpaid[:4] %}
+          <li><a class="row-link" href="/invoices/{{ inv.id }}"><span><span class="title">{{ inv.number }}</span><br><span class="meta">Due {{ inv.due_date | nice_date }}</span></span>
+            <span class="row-right">{{ invoice_total(inv.id) | money }} {{ m.inv_state(inv) }}</span></a></li>
+        {% endfor %}
+        </ul>
+      {% else %}
+        <p class="muted" style="margin:0">You're all paid up.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+
+    {% if equipment %}
+    <section class="panel">
+      <div class="panel-head"><h2>{{ 'Equipment' if user.role in ('owner', 'billing') else 'Your devices' }}</h2><a href="/equipment">See all</a></div>
+      <p style="margin:0">{{ equipment.count }} {{ 'device' if equipment.count == 1 else 'devices' }} on file.
+      {% if equipment.soon %}<br><strong>{{ equipment.soon }} {{ 'warranty ends' if equipment.soon == 1 else 'warranties end' }} soon.</strong> Ask us about replacement options.{% endif %}</p>
+    </section>
+    {% endif %}
+
+    <section class="panel">
+      <div class="panel-head"><h2>Recent documents</h2><a href="/documents">All documents</a></div>
+      <ul class="rows">
+      {% for d in recent_docs %}
+        <li><a class="row-link" href="/documents/{{ d.id }}/download"><span><span class="title">{{ d.title }}</span><br><span class="meta">{{ d.category }}, added {{ d.uploaded_at | nice_date }}</span></span></a></li>
+      {% else %}
+        <li class="empty">Agreements, proposals and reports from SwyfTech will show up here.</li>
+      {% endfor %}
+      </ul>
+    </section>
+
+    {% if cfg.SUPPORT_PHONE or cfg.SUPPORT_EMAIL %}
+    <section class="panel">
+      <h2>Something urgent?</h2>
+      <p style="margin:0">If the whole office is down, send a request and also call us{% if cfg.SUPPORT_PHONE %} at <a href="tel:{{ cfg.SUPPORT_PHONE }}"><strong>{{ cfg.SUPPORT_PHONE }}</strong></a>{% endif %}.{% if cfg.SUPPORT_EMAIL %} You can also email <a href="mailto:{{ cfg.SUPPORT_EMAIL }}">{{ cfg.SUPPORT_EMAIL }}</a>.{% endif %}</p>
+    </section>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

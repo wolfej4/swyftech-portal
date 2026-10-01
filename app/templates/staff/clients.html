@@ -1,0 +1,37 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Clients{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Clients</h1><p>Businesses with portal access.</p></div></div>
+<section class="panel">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Business</th><th class="num">People</th><th class="num">Open requests</th><th class="num">Unpaid</th></tr></thead>
+    <tbody>
+    {% for c in clients %}
+      <tr><td><a href="/staff/clients/{{ c.id }}"><strong>{{ c.name }}</strong></a>{% if not c.active %} <span class="pill closed">Inactive</span>{% endif %}{% if c.phone %}<br><span class="muted small">{{ c.phone }}</span>{% endif %}</td>
+        <td class="num">{{ c.people }}</td><td class="num">{{ c.open_tickets }}</td><td class="num">{{ balances[c.id] | money }}</td></tr>
+    {% else %}
+      <tr><td colspan="4" class="empty">No clients yet. Add your first one below.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+<section class="panel">
+  <h2>Add a client</h2>
+  <form method="post" action="/staff/clients">
+    {{ m.csrf_field(csrf) }}
+    <div class="field-row">
+      <div class="field"><label for="name">Business name</label><input id="name" name="name" required></div>
+      <div class="field"><label for="phone">Phone</label><input id="phone" name="phone" type="text" autocomplete="off"></div>
+    </div>
+    <div class="field"><label for="address">Billing address<span class="hint">Shown on invoices</span></label><textarea id="address" name="address" style="min-height:4.5rem"></textarea></div>
+    <div class="field-row">
+      <div class="field"><label for="owner_name">Owner's name</label><input id="owner_name" name="owner_name"></div>
+      <div class="field"><label for="owner_email">Owner's email<span class="hint">Optional. They'll get an invite as Owner.</span></label><input id="owner_email" name="owner_email" type="email"></div>
+    </div>
+    <button class="btn" type="submit">Add client</button>
+  </form>
+</section>
+{% endblock %}

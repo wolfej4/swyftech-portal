@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Visits{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Visits</h1><p>Confirm bookings, move times, and schedule visits yourself.</p></div>
+  <a class="btn secondary" href="/staff/visit-hours">Visit hours and calendar</a>
+</div>
+
+<section class="panel">
+  <h2>Coming up</h2>
+  <ul class="rows">
+  {% for v in upcoming %}
+    <li class="visit-row">
+      <div>
+        <span class="title" style="font-weight:700; color: var(--night)">{{ V.when(v.start_utc, v.end_utc) }}</span><br>
+        <a href="/staff/clients/{{ v.client_id }}">{{ v.client_name }}</a><span class="muted">, booked by {{ v.booker_name }}</span>
+        {% if v.reason %}<div class="small" style="white-space: pre-wrap">{{ v.reason }}</div>{% endif %}
+        {% if v.ticket_id %}<div class="small"><a href="/staff/tickets/{{ v.ticket_id }}">#{{ v.ticket_id }} {{ v.ticket_subject }}</a></div>{% endif %}
+        <div class="muted small">{{ v.location }}{% if v.onsite_contact %}{{ ', ' if v.location }}ask for {{ v.onsite_contact }}{% endif %}</div>
+        {% if v.staff_notes %}<div class="small">Your notes: {{ v.staff_notes }}</div>{% endif %}
+      </div>
+      <div class="visit-actions">
+        {{ m.visit_status(v, V, true) }}
+        {% if v.status == 'requested' %}
+        <form method="post" action="/staff/visits/{{ v.id }}">{{ m.csrf_field(csrf) }}<button class="btn small" name="action" value="confirm">Confirm</button></form>
+        {% else %}
+        <form method="post" action="/staff/visits/{{ v.id }}">{{ m.csrf_field(csrf) }}<button class="btn secondary small" name="action" value="complete">Mark done</button></form>
+        {% endif %}
+      </div>
+      <details>
+        <summary>Move, cancel or add notes</summary>
+        <form method="post" action="/staff/visits/{{ v.id }}" class="toolbar" style="margin-top:.75rem">
+          {{ m.csrf_field(csrf) }}<input type="hidden" name="action" value="reschedule">
+          {% set ls = V.local(v.start_utc) %}
+          <label class="sr-only" for="d{{ v.id }}">New date</label><input id="d{{ v.id }}" type="date" name="day" value="{{ ls.strftime('%Y-%m-%d') }}" required>
+          <label class="sr-only" for="t{{ v.id }}">New start time</label><input id="t{{ v.id }}" type="time" name="at" value="{{ ls.strftime('%H:%M') }}" required>
+          <button class="btn secondary small" type="submit">Move visit</button>
+        </form>
+        <form method="post" action="/staff/visits/{{ v.id }}" class="toolbar" data-confirm="Cancel this visit and email the client?">
+          {{ m.csrf_field(csrf) }}<input type="hidden" name="action" value="cancel">
+          <label class="sr-only" for="r{{ v.id }}">Reason for the client</label><input id="r{{ v.id }}" name="reason" placeholder="Reason for the client (optional)">
+          <button class="btn danger small" type="submit">Cancel visit</button>
+        </form>
+        <form method="post" action="/staff/visits/{{ v.id }}" class="toolbar">
+          {{ m.csrf_field(csrf) }}<input type="hidden" name="action" value="notes">
+          <label class="sr-only" for="n{{ v.id }}">Private notes</label><input id="n{{ v.id }}" name="staff_notes" value="{{ v.staff_notes }}" placeholder="Private notes (gate code, parking...)">
+          <button class="btn quiet small" type="submit">Save notes</button>
+        </form>
+      </details>
+    </li>
+  {% else %}
+    <li class="empty">Nothing booked.</li>
+  {% endfor %}
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>Schedule a visit</h2>
+  <p class="muted small">You can pick any time here, even outside your visit hours. The client is emailed.</p>
+  <form method="post" action="/staff/visits">
+    {{ m.csrf_field(csrf) }}<input type="hidden" name="ticket_id" value="{{ ticket_id }}">
+    <div class="field-row">
+      <div class="field"><label for="sc">Client</label><select id="sc" name="client_id" required>
+        <option value="">Choose a client</option>{% for c in all_clients %}<option value="{{ c.id }}" {% if c.id == preselect %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="sd">Date</label><input id="sd" type="date" name="day" min="{{ today }}" required></div>
+      <div class="field"><label for="st">Start</label><input id="st" type="time" name="at" value="09:00" required></div>
+      <div class="field"><label for="sm">Minutes</label><input id="sm" type="number" name="minutes" min="15" step="15" value="{{ default_minutes }}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="sl">Where<span class="hint">Leave blank to use their billing address</span></label><input id="sl" name="location"></div>
+      <div class="field"><label for="so">Ask for</label><input id="so" name="onsite_contact"></div>
+    </div>
+    <div class="field"><label for="sr">What it's for</label><input id="sr" name="reason"></div>
+    <button class="btn" type="submit">Schedule and email the client</button>
+  </form>
+</section>
+
+{% if past %}
+<section class="panel">
+  <h2>Earlier and cancelled</h2>
+  <ul class="rows">
+  {% for v in past %}
+    <li class="visit-row"><div><strong>{{ V.when(v.start_utc, v.end_utc) }}</strong><br><span class="muted small">{{ v.client_name }}{% if v.cancel_reason %}. {{ v.cancel_reason }}{% endif %}</span></div>
+      <div class="visit-actions">{% if v.status in ('requested','confirmed') %}<span class="pill resolved">Done</span>{% else %}{{ m.visit_status(v, V, true) }}{% endif %}</div></li>
+  {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

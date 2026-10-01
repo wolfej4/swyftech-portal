@@ -1,0 +1,60 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Equipment{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Equipment</h1>
+    {% if sees_all %}
+    <p>{{ totals.count }} {{ 'device' if totals.count == 1 else 'devices' }} at {{ company }}.{% if totals.soon %} {{ totals.soon }} {{ 'warranty ends' if totals.soon == 1 else 'warranties end' }} in the next {{ cfg.SNIPEIT_WARRANTY_WARN_DAYS }} days.{% endif %}</p>
+    {% else %}
+    <p>Devices checked out to you, plus shared ones like printers.</p>
+    {% endif %}
+  </div>
+  <a class="btn" href="/tickets/new">Ask for help</a>
+</div>
+
+{% if failed %}
+<div class="notice warn" role="status"><p>Your equipment list can't load right now. Try again in a few minutes, or send a request and tell us which device it's about.</p></div>
+{% else %}
+<form class="toolbar" method="get" action="/equipment" role="search">
+  <label for="q" class="sr-only">Search equipment</label>
+  <input id="q" type="search" name="q" value="{{ q }}" placeholder="Search by name, tag, model or person">
+  <button class="btn secondary" type="submit">Search</button>
+  {% if q %}<a href="/equipment">Clear</a>{% endif %}
+</form>
+
+{% for category, devices in grouped.items() %}
+<section class="panel">
+  <h2>{{ category }}</h2>
+  <ul class="rows">
+  {% for d in devices %}
+    <li class="device">
+      <div>
+        <span class="title">{{ d.name }}</span>
+        <span class="meta">{% if d.model and d.model != d.name %}{{ d.manufacturer ~ ' ' if d.manufacturer and d.manufacturer not in d.model }}{{ d.model }}, {% endif %}tag {{ d.tag or 'none' }}{% if d.serial %}, serial {{ d.serial }}{% endif %}</span>
+        {% if sees_all %}<span class="meta">
+          {% if d.assigned_type == 'user' %}With {{ d.assigned_name }}
+          {% elif d.assigned_type == 'location' %}Shared, at {{ d.assigned_name }}
+          {% elif d.assigned_type == 'asset' %}Attached to {{ d.assigned_name }}
+          {% else %}Not assigned{% if d.location %}, at {{ d.location }}{% endif %}{% endif %}
+        </span>{% elif d.assigned_type == 'location' %}<span class="meta">Shared, at {{ d.assigned_name }}</span>{% endif %}
+      </div>
+      <div class="row-right">
+        {% if d.warranty_state == 'none' %}<span class="muted small">{{ d.warranty_text }}</span>
+        {% else %}<span class="pill {{ {'ok': 'paid', 'soon': 'waiting', 'expired': 'overdue'}[d.warranty_state] }}">{{ d.warranty_text }}</span>{% endif %}
+        {% if d.tag %}<a class="btn secondary small" href="/tickets/new?asset={{ d.tag | urlencode }}">Get help</a>{% endif %}
+      </div>
+    </li>
+  {% endfor %}
+  </ul>
+</section>
+{% else %}
+<section class="panel"><p class="empty" style="margin:0">
+  {% if q %}Nothing matches "{{ q }}". <a href="/equipment">Show everything</a>.
+  {% elif sees_all %}No equipment is on file yet. SwyfTech adds devices as we set them up.
+  {% else %}No devices are checked out to you yet. If one is missing, let us know in a request.{% endif %}
+</p></section>
+{% endfor %}
+{% endif %}
+{% endblock %}

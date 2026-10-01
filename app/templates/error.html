@@ -1,0 +1,12 @@
+{% extends "layout.html" if user else "auth_layout.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<p>{{ message }}</p>
+<p><a class="btn secondary" href="/">Go to your dashboard</a></p>
+{% endblock %}
+{% block form %}
+<h1>{{ title }}</h1>
+<p>{{ message }}</p>
+<p><a class="btn secondary" href="/login">Go to sign in</a></p>
+{% endblock %}

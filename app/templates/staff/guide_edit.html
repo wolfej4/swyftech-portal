@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}{{ article.title if article else 'New guide' }}{% endblock %}
+{% block content %}
+<a class="crumb" href="/staff/guides">How-to guides</a>
+<div class="page-head"><div><h1>{{ article.title if article else 'New guide' }}</h1></div>
+  {% if article %}<a href="/help/{{ article.slug }}">Preview as a client sees it</a>{% endif %}</div>
+<form class="panel" method="post" action="{{ '/staff/guides/%d' % article.id if article else '/staff/guides' }}">
+  {{ m.csrf_field(csrf) }}
+  <div class="field"><label for="t">Title</label><input id="t" name="title" required value="{{ article.title if article else '' }}" placeholder="How to reset your Microsoft 365 password"></div>
+  <div class="field"><label for="s">One-line summary<span class="hint">Shown on the guide list</span></label><input id="s" name="summary" value="{{ article.summary if article else '' }}"></div>
+  <div class="field"><label for="b">Guide<span class="hint">Markdown: ## for headings, 1. for steps, **bold**, [links](https://...)</span></label>
+    <textarea id="b" name="body_md" style="min-height:22rem; font-family: ui-monospace, monospace; font-size:.95rem">{{ article.body_md if article else '' }}</textarea></div>
+  <label class="check"><input type="checkbox" name="published" value="1" {% if article and article.published %}checked{% endif %}> Published (clients can see it)</label>
+  <div class="form-actions" style="margin-top:1rem">
+    <button class="btn" type="submit" name="action" value="save">Save guide</button>
+  </div>
+</form>
+{% if article %}
+<form method="post" action="/staff/guides/{{ article.id }}" data-confirm="Delete this guide?">
+  {{ m.csrf_field(csrf) }}<input type="hidden" name="title" value="{{ article.title }}"><button class="btn danger small" type="submit" name="action" value="delete">Delete guide</button>
+</form>
+{% endif %}
+{% endblock %}

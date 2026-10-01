@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Ask for help{% endblock %}
+{% block width %}page-narrow{% endblock %}
+{% block content %}
+<a class="crumb" href="/tickets">Requests</a>
+<h1>Ask for help</h1>
+<p class="muted">Tell us what's going on in your own words. We'll reply here and by email.</p>
+{{ m.error(error) }}
+<form method="post" action="/tickets" class="panel" enctype="multipart/form-data">
+  {{ m.csrf_field(csrf) }}
+  <div class="field"><label for="subject">What do you need help with?<span class="hint">A short summary, like "Front desk printer won't print"</span></label>
+    <input id="subject" name="subject" maxlength="200" required value="{{ subject or '' }}" autofocus></div>
+  <div class="field"><label for="body">Tell us more<span class="hint">What happened, when it started, and who it affects. A photo of any error message helps, so mention it and we'll ask for it.</span></label>
+    <textarea id="body" name="body" required>{{ body or '' }}</textarea></div>
+  <div class="field"><label for="files">Attach files<span class="hint">Optional. A screenshot or a phone photo of the error helps a lot. Up to {{ cfg.MAX_FILES_PER_MESSAGE }} files, {{ cfg.MAX_UPLOAD_MB }} MB each.</span></label>
+    <input id="files" type="file" name="files" multiple accept="image/*,.pdf,.txt,.log,.csv,.doc,.docx,.xls,.xlsx,.pptx,.zip,.eml,.msg,.heic"></div>
+  {% if devices %}
+  <div class="field"><label for="asset">Which device is it about?<span class="hint">Optional. The tag number is on the asset sticker.</span></label>
+    <select id="asset" name="asset">
+      <option value="">Not sure, or not a device</option>
+      {% for d in devices if d.tag %}<option value="{{ d.tag }}" {% if asset == d.tag %}selected{% endif %}>{{ d.label }}{% if user.role in ('owner','billing') and d.assigned_type == 'user' %}, {{ d.assigned_name }}{% endif %}</option>{% endfor %}
+    </select></div>
+  {% endif %}
+  <fieldset>
+    <legend>How much is this affecting you?</legend>
+    <div class="choice-list">
+    {% for value, label in urgency %}
+      <label class="choice"><input type="radio" name="priority" value="{{ value }}" {% if (priority or 'normal') == value %}checked{% endif %}> {{ label }}</label>
+    {% endfor %}
+    </div>
+    {% if cfg.SUPPORT_PHONE %}<p class="hint" style="margin-top:.5rem">If the whole office is down, also call {{ cfg.SUPPORT_PHONE }}.</p>{% endif %}
+  </fieldset>
+  <div class="form-actions"><button class="btn big" type="submit">Send request</button><a href="/tickets">Cancel</a></div>
+</form>
+{% endblock %}

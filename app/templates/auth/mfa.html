@@ -1,0 +1,17 @@
+{% extends "auth_layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Enter your code{% endblock %}
+{% block form %}
+<h1>Enter your code</h1>
+<p class="muted">Open your authenticator app and type the 6-digit code for SwyfTech.</p>
+{{ m.flashes(flashes) }}
+{{ m.error(error) }}
+<form method="post" action="/login/code">
+  {{ m.csrf_field(csrf) }}
+  <div class="field"><label for="code">6-digit code</label>
+    <input id="code" class="code-input" name="code" inputmode="numeric" autocomplete="one-time-code" required autofocus maxlength="11"></div>
+  <div class="form-actions"><button class="btn big" type="submit">Sign in</button></div>
+</form>
+<p class="auth-help">Don't have your phone? Type one of your backup codes in the same box instead.{% if cfg.SUPPORT_PHONE %} Lost those too? Call {{ cfg.SUPPORT_PHONE }} and we'll reset it.{% endif %}</p>
+<form method="post" action="/logout">{{ m.csrf_field(csrf) }}<button class="linklike" type="submit">Use a different account</button></form>
+{% endblock %}

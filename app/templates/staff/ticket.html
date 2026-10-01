@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}#{{ ticket.id }} {{ ticket.subject }}{% endblock %}
+{% block content %}
+<a class="crumb" href="/staff/tickets">Requests</a>
+<div class="page-head"><div><h1>{{ ticket.subject }}</h1><p>#{{ ticket.id }} from {{ ticket.author }} at <a href="/staff/clients/{{ ticket.client_id }}">{{ ticket.client_name }}</a>, {{ ticket.created_at | local_dt }}</p></div></div>
+{% set viewer = user %}
+<div class="grid-2">
+  <div>
+    <div class="thread" id="thread">{% for m in messages %}{% include "partials/message.html" %}{% endfor %}</div>
+    <form class="panel" method="post" action="/staff/tickets/{{ ticket.id }}/reply" enctype="multipart/form-data" hx-post="/staff/tickets/{{ ticket.id }}/reply" hx-encoding="multipart/form-data" hx-target="#thread" hx-swap="beforeend" data-reset-on-success>
+      <div id="reply-error"></div>
+      {{ m.csrf_field(csrf) }}
+      <label for="body">Reply</label>
+      <textarea id="body" name="body"></textarea>
+      <div class="field" style="margin:.75rem 0 0"><label for="files" class="small">Attach files</label>
+        <input id="files" type="file" name="files" multiple accept="{{ accept }},image/*"></div>
+      <div class="field-row" style="margin-top:.75rem; align-items:end">
+        <div class="field" style="margin:0"><label for="after">Then set status to</label>
+          <select id="after" name="status">
+            <option value="in_progress" selected>Being worked on</option>
+            <option value="waiting">Waiting on client</option>
+            <option value="resolved">Resolved</option>
+          </select></div>
+        <label class="check" style="margin:0"><input type="checkbox" name="internal" value="1"> Internal note (client won't see it or get an email)</label>
+      </div>
+      <div class="form-actions" style="margin-top:.75rem"><button class="btn" type="submit">Send</button><span class="htmx-indicator muted small">Sending...</span></div>
+    </form>
+  </div>
+  <aside class="stack">
+    <section class="panel ticket-side">
+      <dl>
+        <dt>Status</dt><dd id="ticket-status">{{ m.status(ticket.status, true) }}</dd>
+        <dt>Contact</dt><dd>{{ ticket.author }}<br><a href="mailto:{{ ticket.author_email }}" class="small">{{ ticket.author_email }}</a></dd>
+        {% if ticket.asset_label %}<dt>Device</dt><dd>{% if ticket.asset_id and cfg.SNIPEIT_URL %}<a href="{{ cfg.SNIPEIT_URL }}/hardware/{{ ticket.asset_id }}" target="_blank" rel="noopener">{{ ticket.asset_label }}</a>{% else %}{{ ticket.asset_label }}{% endif %}</dd>{% endif %}
+        {% if ticket.client_phone %}<dt>Phone</dt><dd><a href="tel:{{ ticket.client_phone }}">{{ ticket.client_phone }}</a></dd>{% endif %}
+      </dl>
+    </section>
+    {% if rating %}
+    <section class="panel">
+      <h2>Client rating</h2>
+      <p style="margin:0"><span class="pill {{ {3: 'paid', 2: 'waiting', 1: 'overdue'}[rating.score] }}">{{ SCORES[rating.score] }}</span> <span class="muted small">{{ rating.updated_at | ago }}</span></p>
+      {% if rating.comment %}<p style="margin:.6rem 0 0; white-space: pre-wrap">"{{ rating.comment }}"</p>{% endif %}
+    </section>
+    {% endif %}
+    <section class="panel">
+      <h2>On-site visits</h2>
+      {% for v in ticket_visits %}<p style="margin:0 0 .4rem">{{ V.when(v.start_utc, v.end_utc) }} {{ m.visit_status(v, V, true) }}</p>{% endfor %}
+      <a href="/staff/visits?client_id={{ ticket.client_id }}&ticket_id={{ ticket.id }}#sc">Schedule a visit for this request</a>
+    </section>
+    <form class="panel" method="post" action="/staff/tickets/{{ ticket.id }}/update">
+      {{ m.csrf_field(csrf) }}
+      <div class="field"><label for="st">Status</label><select id="st" name="status">{% for k, v in STAFF_STATUS_LABELS.items() %}<option value="{{ k }}" {% if ticket.status == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+      <div class="field"><label for="pr">Urgency</label><select id="pr" name="priority">{% for k, v in PRIORITY_LABELS.items() %}<option value="{{ k }}" {% if ticket.priority == k %}selected{% endif %}>{{ v }}</option>{% endfor %}</select></div>
+      <button class="btn secondary" type="submit">Update</button>
+    </form>
+  </aside>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{# Open times for one date. Swapped into #times by htmx when a date is picked. #}
+{% if not chosen %}
+  <p class="muted" style="margin:0">Pick a date above to see its open times.</p>
+{% elif slots %}
+  <fieldset class="day">
+    <legend>{{ chosen.strftime('%A, %B %-d') }}</legend>
+    <div class="slots">
+    {% for s in slots %}
+      <label class="choice slot"><input type="radio" name="slot" value="{{ s.value }}" required {% if form and form.slot == s.value %}checked{% endif %}> {{ s.label }}</label>
+    {% endfor %}
+    </div>
+  </fieldset>
+{% else %}
+  <p style="margin:0">{{ chosen.strftime('%A, %B %-d') }} has no open times left. Pick another date.</p>
+{% endif %}

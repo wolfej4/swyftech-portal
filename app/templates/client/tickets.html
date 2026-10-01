@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Requests{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Requests</h1><p>{{ "Everything your team has asked us for." if can('tickets.all') else "Everything you've asked us for." }}</p></div>
+  <a class="btn" href="/tickets/new">Ask for help</a>
+</div>
+<nav class="tabs" aria-label="Filter requests">
+  <a href="/tickets?show=open" {% if show == 'open' %}aria-current="page"{% endif %}>Open</a>
+  <a href="/tickets?show=done" {% if show != 'open' %}aria-current="page"{% endif %}>Finished</a>
+</nav>
+<section class="panel">
+  <ul class="rows">
+  {% for t in tickets %}
+    <li><a class="row-link" href="/tickets/{{ t.id }}">
+      <span><span class="title">{{ t.subject }}</span><br>
+        <span class="meta">#{{ t.id }}{% if can('tickets.all') %}, from {{ t.author }}{% endif %}, updated {{ t.updated_at | ago }}</span></span>
+      <span class="row-right">{{ m.status(t.status) }}</span></a></li>
+  {% else %}
+    <li class="empty">{% if show == 'open' %}No open requests. <a href="/tickets/new">Ask for help</a> whenever you need it.{% else %}Finished requests will be listed here.{% endif %}</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

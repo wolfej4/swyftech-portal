@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}On-site visit{% endblock %}
+{% block width %}page-narrow{% endblock %}
+{% block content %}
+<a class="crumb" href="/visits">On-site visits</a>
+<div class="page-head"><div><h1>{{ V.when(v.start_utc, v.end_utc) }}</h1><p>On-site visit from {{ cfg.BUSINESS_NAME }}</p></div></div>
+<section class="panel ticket-side">
+  <dl>
+    <dt>Status</dt><dd>{{ m.visit_status(v, V) }}</dd>
+    <dt>Where</dt><dd style="white-space: pre-line">{{ v.location or 'Your office' }}</dd>
+    {% if v.onsite_contact %}<dt>Ask for</dt><dd>{{ v.onsite_contact }}</dd>{% endif %}
+    {% if v.ticket_id %}<dt>Request</dt><dd><a href="/tickets/{{ v.ticket_id }}">#{{ v.ticket_id }} {{ v.ticket_subject }}</a></dd>{% endif %}
+    <dt>Booked by</dt><dd>{{ v.booker_name }}</dd>
+  </dl>
+  {% if v.reason %}<p style="margin:1rem 0 0; white-space: pre-wrap">{{ v.reason }}</p>{% endif %}
+  {% if v.status == 'cancelled' and v.cancel_reason %}<p class="muted" style="margin:1rem 0 0">{{ v.cancel_reason }}</p>{% endif %}
+</section>
+{% if upcoming %}
+<div class="form-actions">
+  <a class="btn secondary" href="/visits/{{ v.id }}/calendar.ics">Add to my calendar</a>
+</div>
+<section class="panel" style="margin-top:1.25rem">
+  <h2>Need to cancel?</h2>
+  <form method="post" action="/visits/{{ v.id }}/cancel" data-confirm="Cancel this visit?">
+    {{ m.csrf_field(csrf) }}
+    <div class="field"><label for="reason">Reason<span class="hint">Optional</span></label><input id="reason" name="reason"></div>
+    <button class="btn danger" type="submit">Cancel visit</button>
+  </form>
+  <p class="muted small" style="margin:.75rem 0 0">To move it, cancel and <a href="/visits/new">book a new time</a>.{% if cfg.SUPPORT_PHONE %} If it's today, please also call {{ cfg.SUPPORT_PHONE }}.{% endif %}</p>
+</section>
+{% endif %}
+{% endblock %}

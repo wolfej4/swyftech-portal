@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block title %}Documents{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Documents</h1><p>Your agreements, proposals and reports from SwyfTech.</p></div></div>
+{% for category, docs in grouped.items() %}
+<section class="panel">
+  <h2>{{ category }}</h2>
+  <ul class="rows">
+  {% for d in docs %}
+    <li><a class="row-link" href="/documents/{{ d.id }}/download">
+      <span><span class="title">{{ d.title }}</span><br><span class="meta">{{ d.filename.rsplit('.', 1)[-1] | upper }} file, {{ d.size_bytes | filesize }}, added {{ d.uploaded_at | nice_date }}</span></span>
+      <span class="row-right">Download</span></a></li>
+  {% endfor %}
+  </ul>
+</section>
+{% else %}
+<section class="panel"><p class="empty" style="margin:0">No documents yet. When SwyfTech shares an agreement, proposal or report, you'll find it here.</p></section>
+{% endfor %}
+{% endblock %}

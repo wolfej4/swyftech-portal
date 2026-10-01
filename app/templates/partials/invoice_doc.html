@@ -1,0 +1,39 @@
+{# Printable invoice body shared by client and staff views. Needs inv, client, items. #}
+{% set total = invoice_total(inv.id) %}
+<article class="invoice-doc">
+  <div class="invoice-top">
+    <div>
+      <img src="/static/img/logo-160.png" alt="" width="92" height="92">
+      <div class="from"><strong>{{ cfg.BUSINESS_NAME }}</strong><br>
+        {% if cfg.SUPPORT_EMAIL %}{{ cfg.SUPPORT_EMAIL }}<br>{% endif %}{% if cfg.SUPPORT_PHONE %}{{ cfg.SUPPORT_PHONE }}{% endif %}</div>
+    </div>
+    <div class="invoice-meta">
+      <div class="number">Invoice {{ inv.number }}</div>
+      <dl>
+        <dt>Issued</dt><dd>{{ inv.issue_date | nice_date }}</dd>
+        <dt>Due</dt><dd>{{ inv.due_date | nice_date }}</dd>
+        <dt>Status</dt><dd>{% set st = invoice_state(inv) %}<span class="pill {{ st }}">{{ INVOICE_STATE_LABELS[st] }}</span></dd>
+      </dl>
+    </div>
+  </div>
+  <div class="bill-to">
+    <div class="muted small">Bill to</div>
+    <strong>{{ client.name }}</strong>{% if client.address %}<br><span style="white-space: pre-line">{{ client.address }}</span>{% endif %}
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Description</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
+      <tbody>
+      {% for it in items %}
+        <tr><td>{{ it.description }}</td><td class="num">{{ '%g' % it.quantity }}</td>
+          <td class="num">{{ it.unit_cents | money }}</td><td class="num">{{ (it.quantity * it.unit_cents) | round | int | money }}</td></tr>
+      {% else %}
+        <tr><td colspan="4" class="muted">No lines yet.</td></tr>
+      {% endfor %}
+      </tbody>
+      <tfoot><tr><td colspan="3">Total</td><td class="num">{{ total | money }}</td></tr></tfoot>
+    </table>
+  </div>
+  {% if inv.notes %}<p class="muted" style="margin-top:1rem; white-space: pre-line">{{ inv.notes }}</p>{% endif %}
+  <p class="muted small" style="margin-top:1rem">{{ cfg.PAYMENT_TERMS_NOTE }}</p>
+</article>

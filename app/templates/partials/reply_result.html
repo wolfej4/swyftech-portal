@@ -1,0 +1,3 @@
+{% if added %}{% include "partials/message.html" %}{% endif %}
+<span id="ticket-status" hx-swap-oob="true"><span class="pill {{ ticket.status }}">{{ (STAFF_STATUS_LABELS if viewer.role == 'staff' else STATUS_LABELS)[ticket.status] }}</span></span>
+<div id="reply-error" hx-swap-oob="true">{% if error %}<div class="notice {{ 'warn' if added else 'error' }}" role="alert"><p>{{ error }}</p></div>{% endif %}</div>

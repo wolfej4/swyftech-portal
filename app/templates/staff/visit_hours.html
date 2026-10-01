@@ -1,0 +1,86 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Visit hours{% endblock %}
+{% block width %}page-narrow{% endblock %}
+{% block content %}
+<a class="crumb" href="/staff/visits">Visits</a>
+<h1>Visit hours and calendar</h1>
+<p class="muted">Clients can only book times inside these hours that are free on your linked calendars and time off.</p>
+{% for p in problems %}<div class="notice error"><p>{{ p }}. Times from that calendar aren't blocked until it loads again.</p></div>{% endfor %}
+
+<form method="post" action="/staff/visit-hours">
+  {{ m.csrf_field(csrf) }}
+  <section class="panel">
+    <h2>Weekly hours</h2>
+    <div class="hours-grid">
+    {% for i in range(7) %}
+      {% set h = cfg_visits.hours[i|string] %}
+      <label class="check"><input type="checkbox" name="on{{ i }}" value="1" {% if h %}checked{% endif %}> {{ V.WEEKDAYS[i] }}</label>
+      <label class="sr-only" for="s{{ i }}">{{ V.WEEKDAYS[i] }} start</label><input id="s{{ i }}" type="time" name="start{{ i }}" value="{{ h[0] if h else '09:00' }}">
+      <label class="sr-only" for="e{{ i }}">{{ V.WEEKDAYS[i] }} end</label><input id="e{{ i }}" type="time" name="end{{ i }}" value="{{ h[1] if h else '17:00' }}">
+    {% endfor %}
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Rules</h2>
+    <div class="field-row">
+      <div class="field"><label for="slot_minutes">Visit length<span class="hint">Minutes</span></label><input id="slot_minutes" type="number" name="slot_minutes" min="30" step="15" value="{{ cfg_visits.slot_minutes }}"></div>
+      <div class="field"><label for="step_minutes">Start times every<span class="hint">Minutes</span></label><input id="step_minutes" type="number" name="step_minutes" min="15" step="15" value="{{ cfg_visits.step_minutes }}"></div>
+      <div class="field"><label for="buffer_minutes">Travel buffer<span class="hint">Minutes kept free before and after</span></label><input id="buffer_minutes" type="number" name="buffer_minutes" min="0" step="5" value="{{ cfg_visits.buffer_minutes }}"></div>
+    </div>
+    <div class="field-row">
+      <div class="field"><label for="notice_hours">Minimum notice<span class="hint">Hours</span></label><input id="notice_hours" type="number" name="notice_hours" min="0" value="{{ cfg_visits.notice_hours }}"></div>
+      <div class="field"><label for="window_days">Book up to<span class="hint">Days ahead</span></label><input id="window_days" type="number" name="window_days" min="1" max="90" value="{{ cfg_visits.window_days }}"></div>
+      <div class="field"><label for="max_per_day">Most visits a day</label><input id="max_per_day" type="number" name="max_per_day" min="1" max="12" value="{{ cfg_visits.max_per_day }}"></div>
+    </div>
+    <label class="check"><input type="checkbox" name="require_confirmation" value="1" {% if cfg_visits.require_confirmation %}checked{% endif %}> I confirm each booking myself (clients see "Waiting for confirmation" until I do)</label>
+  </section>
+  <section class="panel">
+    <h2>Calendars to check</h2>
+    <div class="field"><label for="calendar_urls">Calendar links (ICS), one per line<span class="hint">Times marked busy on these block bookings. Most calendar apps have a private "secret address" or "publish" link. Up to 5.</span></label>
+      <textarea id="calendar_urls" name="calendar_urls" style="min-height:5rem; font-family: ui-monospace, monospace; font-size:.9rem">{{ cfg_visits.calendar_urls | join('\n') }}</textarea></div>
+  </section>
+  <button class="btn big" type="submit">Save visit hours</button>
+</form>
+
+<section class="panel" style="margin-top:1.5rem">
+  <h2>Next open times</h2>
+  {% for day, slots in preview %}
+    <p style="margin:.25rem 0"><strong>{{ day.strftime('%a, %b %-d') }}</strong> <span class="muted">{{ slots | map(attribute='label') | join(', ') }}</span></p>
+  {% else %}
+    <p class="muted" style="margin:0">No open times. Check your hours, time off and calendars.</p>
+  {% endfor %}
+</section>
+
+<section class="panel">
+  <h2>Time off</h2>
+  <ul class="rows">
+  {% for t in time_off %}
+    <li class="visit-row"><div>{{ V.span(t.start_utc, t.end_utc) }}{% if t.note %}<br><span class="muted small">{{ t.note }}</span>{% endif %}</div>
+      <form method="post" action="/staff/visit-hours/time-off/{{ t.id }}/delete">{{ m.csrf_field(csrf) }}<button class="btn quiet small">Remove</button></form></li>
+  {% else %}
+    <li class="empty">No time off coming up.</li>
+  {% endfor %}
+  </ul>
+  <form method="post" action="/staff/visit-hours/time-off" style="margin-top:1rem">
+    {{ m.csrf_field(csrf) }}
+    <div class="field-row">
+      <div class="field"><label for="tsd">From</label><input id="tsd" type="date" name="start_day" required></div>
+      <div class="field"><label for="tst">Time<span class="hint">Blank for all day</span></label><input id="tst" type="time" name="start_at"></div>
+      <div class="field"><label for="ted">Until</label><input id="ted" type="date" name="end_day"></div>
+      <div class="field"><label for="tet">Time</label><input id="tet" type="time" name="end_at"></div>
+    </div>
+    <div class="field"><label for="tn">Note<span class="hint">Only you see this</span></label><input id="tn" name="note"></div>
+    <button class="btn secondary" type="submit">Add time off</button>
+  </form>
+</section>
+
+<section class="panel">
+  <h2>See visits in your calendar app</h2>
+  <p>Subscribe to this private link in Google Calendar, Outlook or Apple Calendar to see every booked visit. Anyone with the link can see client names and addresses, so keep it to yourself.</p>
+  <div class="copy-box"><input id="feed" type="text" readonly value="{{ feed_url }}" aria-label="Calendar link"><button class="btn secondary small" type="button" data-copy="#feed">Copy</button></div>
+  <form method="post" action="/staff/visit-hours/feed" data-confirm="Make a new link? The current one will stop working." style="margin-top:.75rem">
+    {{ m.csrf_field(csrf) }}<button class="btn quiet small" type="submit">Make a new link</button>
+  </form>
+</section>
+{% endblock %}

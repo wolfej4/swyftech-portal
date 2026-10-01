@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Account{% endblock %}
+{% block width %}page-narrow{% endblock %}
+{% block content %}
+<h1>Account</h1>
+<section class="panel">
+  <h2>You</h2>
+  <p style="margin:0"><strong>{{ user.name }}</strong><br>{{ user.email }}<br><span class="muted">{{ ROLE_LABELS[user.role] }}{% if company %} at {{ company }}{% endif %}</span></p>
+</section>
+<section class="panel">
+  <h2>Change password</h2>
+  {{ m.error(pw_error) }}
+  <form method="post" action="/account/password">
+    {{ m.csrf_field(csrf) }}
+    <div class="field"><label for="current">Current password</label><input id="current" name="current" type="password" autocomplete="current-password" required></div>
+    <div class="field-row">
+      <div class="field"><label for="password">New password</label><input id="password" name="password" type="password" autocomplete="new-password" minlength="12" required></div>
+      <div class="field"><label for="confirm">Type it again</label><input id="confirm" name="confirm" type="password" autocomplete="new-password" minlength="12" required></div>
+    </div>
+    <button class="btn" type="submit">Change password</button>
+  </form>
+</section>
+<section class="panel">
+  <h2>Authenticator app</h2>
+  <p>Your account is protected with a code from your phone. You have <strong>{{ codes_left }}</strong> backup {{ 'code' if codes_left == 1 else 'codes' }} left.</p>
+  {{ m.error(codes_error) }}
+  <form method="post" action="/account/backup-codes">
+    {{ m.csrf_field(csrf) }}
+    <div class="field"><label for="code">Make new backup codes<span class="hint">Enter a code from your authenticator app. Your old backup codes will stop working.</span></label>
+      <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" required style="max-width: 12rem"></div>
+    <button class="btn secondary" type="submit">Make new codes</button>
+  </form>
+  <p class="muted small" style="margin:1rem 0 0">Got a new phone? {% if user.role == 'staff' %}Run <code>portal-cli reset-mfa</code> in the container.{% else %}Contact SwyfTech and we'll reset your authenticator so you can connect the new one.{% endif %}</p>
+</section>
+{% endblock %}

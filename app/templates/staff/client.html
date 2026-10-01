@@ -1,0 +1,139 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}{{ client.name }}{% endblock %}
+{% block content %}
+<a class="crumb" href="/staff/clients">Clients</a>
+<div class="page-head">
+  <div><h1>{{ client.name }}</h1><p>{% if client.active %}Client since {{ client.created_at | nice_date }}{% else %}Inactive. Their people can't sign in.{% endif %}</p></div>
+  <form method="post" action="/staff/invoices">{{ m.csrf_field(csrf) }}<input type="hidden" name="client_id" value="{{ client.id }}"><button class="btn" type="submit">New invoice</button></form>
+</div>
+
+<section class="panel">
+  <div class="panel-head"><h2>People</h2></div>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Person</th><th>Access</th><th>Sign-in</th><th><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+    {% for p in people %}
+      <tr>
+        <td><strong>{{ p.name or 'Invited' }}</strong><br><span class="muted small">{{ p.email }}</span></td>
+        <td>
+          <form method="post" action="/staff/users/{{ p.id }}" class="toolbar" style="margin:0">
+            {{ m.csrf_field(csrf) }}<input type="hidden" name="action" value="role">
+            <label class="sr-only" for="r{{ p.id }}">Access</label>
+            <select id="r{{ p.id }}" name="role">{% for r in ['owner','billing','member'] %}<option value="{{ r }}" {% if p.role == r %}selected{% endif %}>{{ ROLE_LABELS[r] }}</option>{% endfor %}</select>
+            <button class="btn quiet small" type="submit">Save</button>
+          </form>
+        </td>
+        <td class="small">
+          {% if not p.active %}<span class="pill closed">Turned off</span>
+          {% elif not p.password_hash %}<span class="pill waiting">Invite pending</span>
+          {% elif not p.totp_enabled %}<span class="pill waiting">Needs app setup</span>
+          {% else %}<span class="pill paid">Active</span>{% endif %}
+          {% if p.last_login %}<br><span class="muted">Last in {{ p.last_login | ago }}</span>{% endif %}
+        </td>
+        <td class="num">
+          {% if not p.password_hash and p.active %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="resend">Resend invite</button></form>{% endif %}
+          {% if p.locked_until %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="unlock">Unlock</button></form>{% endif %}
+          {% if p.totp_enabled %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form" data-confirm="Reset the authenticator for {{ p.email }}? Only do this after confirming who they are by phone.">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="reset_mfa">Reset app</button></form>{% endif %}
+          {% if p.active %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form" data-confirm="Turn off portal access for {{ p.email }}?">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="disable">Turn off</button></form>
+          {% else %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="enable">Turn on</button></form>{% endif %}
+        </td>
+      </tr>
+    {% else %}
+      <tr><td colspan="4" class="empty">No one yet. Invite the owner first.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+  <form method="post" action="/staff/clients/{{ client.id }}/people" style="margin-top:1rem">
+    {{ m.csrf_field(csrf) }}
+    <div class="field-row">
+      <div class="field"><label for="pn">Name</label><input id="pn" name="name"></div>
+      <div class="field"><label for="pe">Email</label><input id="pe" name="email" type="email" required></div>
+      <div class="field"><label for="pr">Access</label><select id="pr" name="role">{% for r in ['owner','billing','member'] %}<option value="{{ r }}" {% if (r == 'owner' and not people) or (r == 'member' and people) %}selected{% endif %}>{{ ROLE_LABELS[r] }}</option>{% endfor %}</select></div>
+    </div>
+    <button class="btn secondary" type="submit">Invite person</button>
+  </form>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><h2>Equipment</h2>
+    {% if snipe.enabled and client.snipeit_company_id %}<a href="{{ cfg.SNIPEIT_URL }}/companies/{{ client.snipeit_company_id }}" target="_blank" rel="noopener">Open in Snipe-IT</a>{% endif %}</div>
+  {% if not snipe.enabled %}
+    <p class="muted" style="margin:0">Connect Snipe-IT to give clients an Equipment page and a device picker on requests. Add <code>SNIPEIT_URL</code> and <code>SNIPEIT_API_TOKEN</code> to <code>.env</code>, then restart the portal.</p>
+  {% elif snipe.error %}
+    <div class="notice error"><p>{{ snipe.error }}</p></div>
+  {% else %}
+    <form method="post" action="/staff/clients/{{ client.id }}/snipeit" class="toolbar" style="margin-bottom:.75rem">
+      {{ m.csrf_field(csrf) }}
+      <label for="sc" class="sr-only">Snipe-IT company</label>
+      <select id="sc" name="company_id">
+        <option value="0">Not linked</option>
+        {% for c in snipe.companies %}<option value="{{ c.id }}" {% if c.id == client.snipeit_company_id %}selected{% endif %}>{{ c.name }} ({{ c.assets }} {{ 'asset' if c.assets == 1 else 'assets' }})</option>{% endfor %}
+      </select>
+      <button class="btn secondary small" type="submit">Save link</button>
+    </form>
+    {% if snipe.summary %}
+      <p>{{ snipe.summary.count }} {{ 'device' if snipe.summary.count == 1 else 'devices' }} in use.
+        {% if snipe.summary.soon %}{{ snipe.summary.soon }} {{ 'warranty ends' if snipe.summary.soon == 1 else 'warranties end' }} within {{ cfg.SNIPEIT_WARRANTY_WARN_DAYS }} days.{% endif %}
+        {% if snipe.summary.expired %}{{ snipe.summary.expired }} out of warranty.{% endif %}</p>
+      {% if snipe.attention %}
+      <ul class="rows">
+      {% for d in snipe.attention %}
+        <li class="device"><div><a class="title" href="{{ d.snipeit_url }}" target="_blank" rel="noopener">{{ d.name }}</a>
+          <span class="meta">{{ d.model }}, tag {{ d.tag }}{% if d.assigned_name %}, {{ d.assigned_name }}{% endif %}</span></div>
+          <div class="row-right"><span class="pill {{ 'waiting' if d.warranty_state == 'soon' else 'overdue' }}">{{ d.warranty_text }}</span></div></li>
+      {% endfor %}
+      </ul>
+      {% endif %}
+    {% elif not client.snipeit_company_id %}
+      <p class="muted small" style="margin:0">Pick this client's company in Snipe-IT. Their Owner and Billing people will see all of its devices; team members see the ones checked out to them plus shared ones.</p>
+    {% endif %}
+  {% endif %}
+</section>
+
+<div class="grid-2">
+  <section class="panel">
+    <div class="panel-head"><h2>Requests</h2><a href="/staff/tickets?client_id={{ client.id }}&show=active">All for this client</a></div>
+    <ul class="rows">
+    {% for t in tickets %}
+      <li><a class="row-link" href="/staff/tickets/{{ t.id }}"><span><span class="title">{{ t.subject }}</span><br><span class="meta">#{{ t.id }}, updated {{ t.updated_at | ago }}</span></span><span class="row-right">{{ m.status(t.status, true) }}</span></a></li>
+    {% else %}<li class="empty">No requests yet.</li>{% endfor %}
+    </ul>
+  </section>
+  <section class="panel">
+    <div class="panel-head"><h2>Invoices</h2></div>
+    <ul class="rows">
+    {% for inv in invoices %}
+      <li><a class="row-link" href="/staff/invoices/{{ inv.id }}"><span><span class="title">{{ inv.number }}</span><br><span class="meta">Due {{ inv.due_date | nice_date }}</span></span><span class="row-right">{{ invoice_total(inv.id) | money }} {{ m.inv_state(inv) }}</span></a></li>
+    {% else %}<li class="empty">No invoices yet.</li>{% endfor %}
+    </ul>
+  </section>
+</div>
+
+<section class="panel" style="margin-top:1.25rem">
+  <div class="panel-head"><h2>Documents</h2><a href="/staff/documents?client_id={{ client.id }}">Upload for this client</a></div>
+  <ul class="rows">
+  {% for d in docs %}
+    <li class="row-link"><span><a href="/documents/{{ d.id }}/download"><strong>{{ d.title }}</strong></a><br><span class="meta">{{ d.category }}, {{ 'Owner and Billing only' if d.visibility == 'billing' else 'Everyone' }}, {{ d.uploaded_at | nice_date }}</span></span>
+      <form method="post" action="/staff/documents/{{ d.id }}/delete" data-confirm="Delete {{ d.title }}?">{{ m.csrf_field(csrf) }}<button class="btn quiet small" type="submit">Delete</button></form></li>
+  {% else %}<li class="empty">Nothing shared with this client yet.</li>{% endfor %}
+  </ul>
+</section>
+
+<section class="panel">
+  <h2>Details</h2>
+  <form method="post" action="/staff/clients/{{ client.id }}">
+    {{ m.csrf_field(csrf) }}
+    <div class="field-row">
+      <div class="field"><label for="cn">Business name</label><input id="cn" name="name" required value="{{ client.name }}"></div>
+      <div class="field"><label for="cp">Phone</label><input id="cp" name="phone" value="{{ client.phone }}"></div>
+      <div class="field"><label for="ca">Portal access</label><select id="ca" name="active"><option value="1" {% if client.active %}selected{% endif %}>Active</option><option value="0" {% if not client.active %}selected{% endif %}>Inactive (no one can sign in)</option></select></div>
+    </div>
+    <div class="field"><label for="cad">Billing address</label><textarea id="cad" name="address" style="min-height:4.5rem">{{ client.address }}</textarea></div>
+    <div class="field"><label for="cno">Private notes<span class="hint">Only SwyfTech staff see these</span></label><textarea id="cno" name="notes" style="min-height:5rem">{{ client.notes }}</textarea></div>
+    <button class="btn secondary" type="submit">Save details</button>
+  </form>
+</section>
+{% endblock %}

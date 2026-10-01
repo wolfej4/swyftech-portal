@@ -1,0 +1,32 @@
+{% extends "auth_layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}How did we do?{% endblock %}
+{% block form %}
+{% if done %}
+  <h1>Thanks, {{ (person.name or '').split(' ')[0] or 'there' }}!</h1>
+  {% if score == 1 %}
+  <p>Sorry we didn't get it right. We've been told, and we'll follow up.</p>
+  <p>If the problem is still there, reply to the request and it reopens right away.</p>
+  <p><a class="btn" href="/tickets/{{ ticket.id }}">Open the request</a></p>
+  {% else %}
+  <p>Your feedback on "{{ ticket.subject }}" helps us do better work for you.</p>
+  {% endif %}
+{% else %}
+  <h1>How did we do?</h1>
+  <p class="muted">Request #{{ ticket.id }}: {{ ticket.subject }}</p>
+  <form method="post" action="/rate/{{ token }}">
+    {{ m.csrf_field(csrf) }}
+    <fieldset>
+      <legend class="sr-only">Your rating</legend>
+      <div class="choice-list">
+      {% for value, label in SCORES.items() %}
+        <label class="choice"><input type="radio" name="score" value="{{ value }}" required {% if score == value %}checked{% endif %}> {{ label }}</label>
+      {% endfor %}
+      </div>
+    </fieldset>
+    <div class="field"><label for="comment">Anything to add?<span class="hint">Optional. It goes straight to {{ cfg.BUSINESS_NAME }}.</span></label>
+      <textarea id="comment" name="comment" style="min-height:6rem"></textarea></div>
+    <button class="btn big" type="submit">Send rating</button>
+  </form>
+{% endif %}
+{% endblock %}

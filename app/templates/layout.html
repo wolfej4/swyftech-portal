@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% import "macros.html" as m %}
+{% block body %}
+<div class="shell">
+  <aside class="rail">
+    <a class="rail-brand" href="/">
+      <img src="/static/img/logo-160.png" alt="SwyfTech home" width="96" height="96">
+      <span>Client portal{% if company %}<small>{{ company }}</small>{% elif user.role == 'staff' %}<small>SwyfTech staff</small>{% endif %}</span>
+    </a>
+    <nav aria-label="Main">
+      {% if user.role == 'staff' %}
+        <a href="/staff" {% if nav == 's-home' %}aria-current="page"{% endif %}>Overview</a>
+        <a href="/staff/tickets" {% if nav == 's-tickets' %}aria-current="page"{% endif %}>Requests</a>
+        <a href="/staff/visits" {% if nav == 's-visits' %}aria-current="page"{% endif %}>Visits</a>
+        <a href="/staff/clients" {% if nav == 's-clients' %}aria-current="page"{% endif %}>Clients</a>
+        <a href="/staff/invoices" {% if nav == 's-invoices' %}aria-current="page"{% endif %}>Invoices</a>
+        <a href="/staff/reports" {% if nav == 's-reports' %}aria-current="page"{% endif %}>Reports</a>
+        <a href="/staff/documents" {% if nav == 's-docs' %}aria-current="page"{% endif %}>Documents</a>
+        <a href="/staff/guides" {% if nav == 's-guides' %}aria-current="page"{% endif %}>How-to guides</a>
+      {% else %}
+        <a href="/dashboard" {% if nav == 'home' %}aria-current="page"{% endif %}>Home</a>
+        <a href="/tickets" {% if nav == 'tickets' %}aria-current="page"{% endif %}>Requests</a>
+        {% if can('visits') %}<a href="/visits" {% if nav == 'visits' %}aria-current="page"{% endif %}>On-site visits</a>{% endif %}
+        {% if equipment_on %}<a href="/equipment" {% if nav == 'equipment' %}aria-current="page"{% endif %}>Equipment</a>{% endif %}
+        {% if can('billing') %}<a href="/invoices" {% if nav == 'invoices' %}aria-current="page"{% endif %}>Invoices</a>{% endif %}
+        <a href="/documents" {% if nav == 'documents' %}aria-current="page"{% endif %}>Documents</a>
+        <a href="/help" {% if nav == 'help' %}aria-current="page"{% endif %}>How-to guides</a>
+        {% if can('reports') %}<a href="/reports" {% if nav == 'reports' %}aria-current="page"{% endif %}>Reports</a>{% endif %}
+        {% if can('team') %}<a href="/team" {% if nav == 'team' %}aria-current="page"{% endif %}>Your team</a>{% endif %}
+      {% endif %}
+    </nav>
+    <div class="rail-foot">
+      <span class="who">{{ user.name or user.email }}</span>
+      <span class="role">{{ ROLE_LABELS[user.role] }}</span>
+      <a href="/account" {% if nav == 'account' %}aria-current="page"{% endif %}>Account</a>
+      &nbsp;
+      <form method="post" action="/logout">{{ m.csrf_field(csrf) }}<button class="linklike" type="submit">Sign out</button></form>
+    </div>
+  </aside>
+  <main class="main" id="main">
+    <div class="{% block width %}page{% endblock %}">
+      {{ m.flashes(flashes) }}
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+</div>
+{% endblock %}

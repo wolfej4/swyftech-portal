@@ -1,0 +1,26 @@
+{% macro csrf_field(csrf) %}<input type="hidden" name="csrf_token" value="{{ csrf }}">{% endmacro %}
+
+{% macro flashes(items) %}
+{% for f in items %}
+  {% if f.kind == 'link' and ': ' in f.text %}
+    {% set parts = f.text.rsplit(': ', 1) %}
+    <div class="notice link" role="status">
+      <p>{{ parts[0] }}:</p>
+      <div class="copy-box"><input id="flash-link-{{ loop.index }}" type="text" readonly value="{{ parts[1] }}" aria-label="Invite link">
+      <button class="btn secondary small" type="button" data-copy="#flash-link-{{ loop.index }}">Copy</button></div>
+    </div>
+  {% else %}
+    <div class="notice {{ f.kind }}" role="status"><p>{{ f.text }}</p></div>
+  {% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro status(s, staff=false) %}<span class="pill {{ s }}">{{ (STAFF_STATUS_LABELS if staff else STATUS_LABELS).get(s, s) }}</span>{% endmacro %}
+
+{% macro priority(p) %}<span class="pill {{ p }}">{{ PRIORITY_LABELS.get(p, p) }}</span>{% endmacro %}
+
+{% macro inv_state(inv) %}{% set st = invoice_state(inv) %}<span class="pill {{ st }}">{{ INVOICE_STATE_LABELS[st] }}</span>{% endmacro %}
+
+{% macro error(msg) %}{% if msg %}<div class="notice error" role="alert"><p>{{ msg }}</p></div>{% endif %}{% endmacro %}
+
+{% macro visit_status(v, V, staff=false) %}<span class="pill {{ {'requested': 'waiting', 'confirmed': 'paid', 'cancelled': 'closed', 'completed': 'resolved'}[v.status] }}">{{ (V.STAFF_STATUS_LABELS if staff else V.STATUS_LABELS)[v.status] }}</span>{% endmacro %}

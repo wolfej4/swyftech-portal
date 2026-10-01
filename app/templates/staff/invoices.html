@@ -1,0 +1,34 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Invoices</h1></div>
+  <form class="toolbar" method="post" action="/staff/invoices" style="margin:0">
+    {{ m.csrf_field(csrf) }}
+    <label for="nc" class="sr-only">Client</label>
+    <select id="nc" name="client_id" required><option value="">Choose a client</option>{% for c in all_clients %}<option value="{{ c.id }}">{{ c.name }}</option>{% endfor %}</select>
+    <button class="btn" type="submit">New invoice</button>
+  </form>
+</div>
+<nav class="tabs" aria-label="Filter">
+  {% for key, label in [('open','Drafts and unpaid'),('paid','Paid'),('all','All')] %}
+  <a href="/staff/invoices?show={{ key }}" {% if show == key %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+<section class="panel">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Invoice</th><th>Client</th><th>Issued</th><th>Due</th><th class="num">Amount</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for inv in invoices %}
+      <tr><td><a href="/staff/invoices/{{ inv.id }}"><strong>{{ inv.number }}</strong></a></td><td>{{ inv.client_name }}</td>
+        <td>{{ inv.issue_date | nice_date }}</td><td>{{ inv.due_date | nice_date }}</td><td class="num">{{ invoice_total(inv.id) | money }}</td><td>{{ m.inv_state(inv) }}</td></tr>
+    {% else %}
+      <tr><td colspan="6" class="empty">Nothing here.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

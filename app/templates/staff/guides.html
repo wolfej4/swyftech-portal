@@ -1,0 +1,15 @@
+{% extends "layout.html" %}
+{% block title %}How-to guides{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>How-to guides</h1><p>Short articles every client can read. Written in Markdown.</p></div><a class="btn" href="/staff/guides/new">New guide</a></div>
+<section class="panel">
+  <ul class="rows">
+  {% for a in articles %}
+    <li><a class="row-link" href="/staff/guides/{{ a.id }}"><span><span class="title">{{ a.title }}</span><br><span class="meta">{{ a.summary }}</span></span>
+      <span class="row-right">{% if a.published %}<span class="pill paid">Published</span>{% else %}<span class="pill draft">Draft</span>{% endif %}</span></a></li>
+  {% else %}
+    <li class="empty">No guides yet. Good first ones: how to reset your Microsoft 365 password, how to spot a phishing email, and how to send us a screenshot.</li>
+  {% endfor %}
+  </ul>
+</section>
+{% endblock %}

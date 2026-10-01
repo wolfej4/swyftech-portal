@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}Requests{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Requests</h1><p>Sorted by urgency, then most recent activity.</p></div></div>
+<nav class="tabs" aria-label="Filter">
+  {% for key, label in [('active','Active'),('waiting','Waiting on client'),('done','Finished')] %}
+  <a href="/staff/tickets?show={{ key }}{% if client_id %}&client_id={{ client_id }}{% endif %}" {% if show == key %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>
+<form class="toolbar" method="get" action="/staff/tickets">
+  <input type="hidden" name="show" value="{{ show }}">
+  <label for="cf" class="sr-only">Client</label>
+  <select id="cf" name="client_id"><option value="0">All clients</option>{% for c in all_clients %}<option value="{{ c.id }}" {% if c.id == client_id %}selected{% endif %}>{{ c.name }}</option>{% endfor %}</select>
+  <button class="btn secondary small" type="submit">Filter</button>
+</form>
+<section class="panel">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>#</th><th>Request</th><th>Client</th><th>Urgency</th><th>Status</th><th>Updated</th></tr></thead>
+    <tbody>
+    {% for t in tickets %}
+      <tr><td>{{ t.id }}</td><td><a href="/staff/tickets/{{ t.id }}"><strong>{{ t.subject }}</strong></a><br><span class="muted small">{{ t.author }}</span></td>
+        <td>{{ t.client_name }}</td><td>{{ m.priority(t.priority) }}</td><td>{{ m.status(t.status, true) }}</td><td class="small">{{ t.updated_at | ago }}</td></tr>
+    {% else %}
+      <tr><td colspan="6" class="empty">Nothing here.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

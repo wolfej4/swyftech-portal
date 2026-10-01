@@ -1,0 +1,6 @@
+{% extends "layout.html" %}
+{% block title %}{{ r.month_label }} report{% endblock %}
+{% block content %}
+<div class="page-head no-print"><a class="crumb" href="/reports">Monthly reports</a><button class="btn secondary small" type="button" data-print>Print or save as PDF</button></div>
+{% include "partials/report_body.html" %}
+{% endblock %}

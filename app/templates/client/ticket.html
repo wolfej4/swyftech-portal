@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}#{{ ticket.id }} {{ ticket.subject }}{% endblock %}
+{% block content %}
+<a class="crumb" href="/tickets">Requests</a>
+<div class="page-head"><div><h1>{{ ticket.subject }}</h1><p>Request #{{ ticket.id }}, opened by {{ ticket.author }} on {{ ticket.created_at | local_dt('%b %-d, %Y') }}</p></div></div>
+{% set viewer = user %}
+<div class="grid-2">
+  <div>
+    <div class="thread" id="thread">
+      {% for m in messages %}{% include "partials/message.html" %}{% endfor %}
+    </div>
+    <form class="panel" method="post" action="/tickets/{{ ticket.id }}/reply" enctype="multipart/form-data" hx-post="/tickets/{{ ticket.id }}/reply" hx-encoding="multipart/form-data" hx-target="#thread" hx-swap="beforeend" data-reset-on-success>
+      <div id="reply-error"></div>
+      {{ m.csrf_field(csrf) }}
+      <label for="body">{% if ticket.status == 'waiting' %}We need a reply from you{% elif ticket.status in ('resolved','closed') %}Still having trouble? Reply to reopen this request{% else %}Reply{% endif %}</label>
+      <textarea id="body" name="body"></textarea>
+      <div class="field" style="margin:.75rem 0 0"><label for="files" class="small">Attach files<span class="hint">Screenshots, photos of an error, PDFs. Up to {{ cfg.MAX_FILES_PER_MESSAGE }} files, {{ cfg.MAX_UPLOAD_MB }} MB each.</span></label>
+        <input id="files" type="file" name="files" multiple accept="{{ accept }},image/*"></div>
+      <div class="form-actions" style="margin-top:.75rem"><button class="btn" type="submit">Send reply</button><span class="htmx-indicator muted small">Sending...</span></div>
+    </form>
+  </div>
+  <aside class="panel ticket-side">
+    <dl>
+      <dt>Status</dt><dd id="ticket-status">{{ m.status(ticket.status) }}</dd>
+      <dt>Urgency</dt><dd>{{ PRIORITY_LABELS[ticket.priority] }}</dd>
+      {% if ticket.asset_label %}<dt>Device</dt><dd>{{ ticket.asset_label }}</dd>{% endif %}
+      <dt>Opened</dt><dd>{{ ticket.created_at | nice_date }}</dd>
+    </dl>
+    {% for v in ticket_visits %}
+    <p style="margin:1rem 0 0">On-site visit: <a href="/visits/{{ v.id }}">{{ V.when(v.start_utc, v.end_utc) }}</a></p>
+    {% endfor %}
+    {% if ticket.status not in ('resolved', 'closed') %}
+    <form method="post" action="/tickets/{{ ticket.id }}/resolve" style="margin-top:1.25rem">
+      {{ m.csrf_field(csrf) }}<button class="btn secondary" type="submit">It's fixed, close this request</button>
+    </form>
+    {% if can('visits') and not ticket_visits %}<p style="margin:.75rem 0 0"><a href="/visits/new?ticket={{ ticket.id }}">Need someone on site? Book a visit</a></p>{% endif %}
+    {% endif %}
+    {% if can_rate %}
+    <div class="rating" id="rating">
+      <h2>How did we do?</h2>
+      <form method="post" action="/tickets/{{ ticket.id }}/rate" class="rating-buttons">
+        {{ m.csrf_field(csrf) }}
+        {% for value, label in SCORES.items() %}
+        <button class="btn {{ 'secondary' if not rating or rating.score != value else '' }} small" type="submit" name="score" value="{{ value }}"
+          {% if rating and rating.score == value %}aria-pressed="true"{% endif %}>{{ label }}</button>
+        {% endfor %}
+      </form>
+      {% if rating %}
+      <form method="post" action="/tickets/{{ ticket.id }}/rate" style="margin-top:.75rem">
+        {{ m.csrf_field(csrf) }}<input type="hidden" name="score" value="{{ rating.score }}">
+        <label for="rcomment" class="small">{{ 'Your note' if rating.comment else 'Want to add a note?' }}</label>
+        <textarea id="rcomment" name="comment" style="min-height:4.5rem">{{ rating.comment }}</textarea>
+        <button class="btn quiet small" type="submit">Save note</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

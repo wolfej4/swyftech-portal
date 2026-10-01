@@ -1,0 +1,18 @@
+{% extends "layout.html" %}
+{% block title %}How-to guides{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>How-to guides</h1><p>Quick answers for everyday tech questions.</p></div></div>
+<form class="toolbar" method="get" action="/help" role="search">
+  <label for="q" class="sr-only">Search guides</label>
+  <input id="q" type="search" name="q" value="{{ q }}" placeholder="Search, like 'printer' or 'password'">
+  <button class="btn secondary" type="submit">Search</button>
+  {% if q %}<a href="/help">Clear</a>{% endif %}
+</form>
+<div class="guide-list">
+{% for a in articles %}
+  <a class="guide-card" href="/help/{{ a.slug }}"><strong>{{ a.title }}</strong>{% if a.summary %}<span>{{ a.summary }}</span>{% endif %}</a>
+{% else %}
+  <p class="muted">{% if q %}No guides match "{{ q }}". <a href="/tickets/new">Ask us instead</a>.{% else %}Guides are on the way. In the meantime, <a href="/tickets/new">ask us anything</a>.{% endif %}</p>
+{% endfor %}
+</div>
+{% endblock %}

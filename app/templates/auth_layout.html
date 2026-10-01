@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block body %}
+<main class="auth">
+  <section class="auth-brand">
+    <svg class="arc" viewBox="0 0 520 520" aria-hidden="true"><path d="M40 470 A 430 430 0 0 0 470 40" fill="none" stroke="#0A9BFF" stroke-width="14" stroke-linecap="round"/></svg>
+    <img src="/static/img/logo.png" alt="SwyfTech">
+    <p>{{ cfg.TAGLINE }}</p>
+  </section>
+  <section class="auth-form">
+    <div class="box">{% block form %}{% endblock %}</div>
+  </section>
+</main>
+{% endblock %}
