@@ -204,7 +204,7 @@ pct push "$CTID" "$INSTALLER" /root/${NSAPP}-install.sh --perms 0700
 rm -f "$INSTALLER"
 msg_ok "Installer ready"
 
-pct exec "$CTID" -- env REPO="$REPO" BRANCH="$BRANCH" PORT="$var_port" \
+pct exec "$CTID" -- env LANG=C.UTF-8 LC_ALL=C.UTF-8 REPO="$REPO" BRANCH="$BRANCH" PORT="$var_port" \
   STAFF_EMAIL="$STAFF_EMAIL" STAFF_NAME="$STAFF_NAME" BASE_URL="$PUBLIC_URL" \
   bash /root/${NSAPP}-install.sh
 

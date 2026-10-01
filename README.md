@@ -66,7 +66,7 @@ If you put Cloudflare Access in front of the portal, add a bypass policy for `/s
 
 ## Settings
 
-Everything lives in `/opt/swyftech-portal/.env`. Restart the service after changes.
+Everything lives in `/opt/swyftech-portal/.env`. `example.env` in the repo lists every option with notes. Restart the service after changes.
 
 | Setting | What it does |
 |---|---|
@@ -260,7 +260,7 @@ install/swyftech-portal-install.sh  runs inside the container
 ```bash
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env    # set BASE_URL=http://localhost:8000
+cp example.env .env      # set BASE_URL=http://localhost:8000
 python -m app.cli create-staff --email you@example.com --name You
 uvicorn app.main:app --reload
 ```

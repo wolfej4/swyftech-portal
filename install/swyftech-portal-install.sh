@@ -21,6 +21,19 @@ msg_error() { printf "\r\033[K %s✖️ %s%s\n" "$RD" "$1" "$CL"; }
 trap 'msg_error "Install failed on line $LINENO"' ERR
 
 export DEBIAN_FRONTEND=noninteractive
+# The Proxmox shell passes its own language setting (often en_US.UTF-8) into the container, but the
+# Debian template doesn't include that locale yet. C.UTF-8 is always built in, so use it until
+# en_US.UTF-8 is generated below. This keeps apt and perl from printing locale warnings.
+export LANG=C.UTF-8 LC_ALL=C.UTF-8
+unset LANGUAGE
+
+msg_info "Setting up the system language"
+apt-get update -qq
+apt-get install -y -qq locales >/dev/null
+sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen
+locale-gen >/dev/null
+update-locale LANG=en_US.UTF-8
+msg_ok "System language set to en_US.UTF-8"
 
 msg_info "Updating the OS"
 apt-get update -qq
@@ -53,14 +66,57 @@ msg_info "Writing settings"
 IP=$(hostname -I | awk '{print $1}')
 [[ -n "$BASE_URL" ]] || BASE_URL="http://${IP}:${PORT}"
 mkdir -p "$APP_DIR/data/uploads" "$APP_DIR/data/backups"
-if [[ ! -f "$APP_DIR/.env" ]]; then
+# Written here rather than copied from example.env, so the install works even if that
+# file didn't make it into the repo (GitHub's web upload skips files starting with a dot).
+# An empty .env (left by an earlier failed run) counts as missing.
+if [[ ! -s "$APP_DIR/.env" ]]; then
   SECRET=$(python3 -c 'import secrets; print(secrets.token_urlsafe(48))')
-  sed -e "s|^BASE_URL=.*|BASE_URL=${BASE_URL}|" \
-      -e "s|^SECRET_KEY=.*|SECRET_KEY=${SECRET}|" \
-      -e "s|^SUPPORT_EMAIL=.*|SUPPORT_EMAIL=${STAFF_EMAIL}|" \
-      -e "s|^STAFF_NOTIFY_EMAIL=.*|STAFF_NOTIFY_EMAIL=${STAFF_EMAIL}|" \
-      -e "s|^SUPPORT_PHONE=.*|SUPPORT_PHONE=|" \
-      "$APP_DIR/.env.example" > "$APP_DIR/.env"
+  cat >"$APP_DIR/.env" <<ENVEOF
+# SwyfTech client portal settings. After editing: systemctl restart swyftech-portal
+# Every option is explained in example.env and the README.
+
+# Public address clients use. Must be https in production (Stripe and secure cookies need it).
+BASE_URL=${BASE_URL}
+SECRET_KEY=${SECRET}
+TIMEZONE=America/Chicago
+
+BUSINESS_NAME=SwyfTech LLC
+SUPPORT_EMAIL=${STAFF_EMAIL}
+SUPPORT_PHONE=
+STAFF_NOTIFY_EMAIL=${STAFF_EMAIL}
+TAGLINE=IT support for businesses across Okaloosa, Santa Rosa, Walton and Escambia counties.
+
+INVOICE_PREFIX=SWY
+DEFAULT_NET_DAYS=15
+
+# Email (Microsoft 365: smtp.office365.com, 587, starttls)
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_TLS=starttls
+SMTP_USER=
+SMTP_PASSWORD=
+SMTP_FROM=
+
+# Stripe
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+# Snipe-IT (optional)
+SNIPEIT_URL=
+SNIPEIT_API_TOKEN=
+SNIPEIT_VERIFY_TLS=true
+
+# S3-compatible storage (optional; blank keeps files on this container's disk)
+S3_ENDPOINT_URL=
+S3_BUCKET=
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+S3_REGION=us-east-1
+S3_PREFIX=swyftech-portal/
+
+MAX_UPLOAD_MB=25
+MAX_FILES_PER_MESSAGE=5
+ENVEOF
 fi
 chown root:"$SVC_USER" "$APP_DIR/.env"
 chmod 640 "$APP_DIR/.env"
