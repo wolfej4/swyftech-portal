@@ -11,3 +11,4 @@ stripe>=10,<17
 icalendar>=6
 recurring-ical-events>=3
 boto3>=1.35
+cryptography>=42

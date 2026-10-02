@@ -114,7 +114,7 @@ whiptail --backtitle "Proxmox VE Helper" --title "${APP} LXC" --yesno \
 # ---- pick settings ----------------------------------------------------------
 CTID=$(pvesh get /cluster/nextid)
 HN="$var_hostname"; CORES="$var_cpu"; RAM="$var_ram"; DISK="$var_disk"; BRIDGE="$var_bridge"
-NET="dhcp"; GATE=""; TAGS="$var_tags"
+NET="dhcp"; GATE=""; TAGS="$var_tags"; ROOT_PW=""
 
 pick_storage() {  # $1 = content type, $2 = label
   local content=$1 label=$2 list=() count=0 name type free
@@ -129,7 +129,7 @@ pick_storage() {  # $1 = content type, $2 = label
 }
 
 if whiptail --backtitle "Proxmox VE Helper" --title "Settings" --yes-button "Default" --no-button "Advanced" --yesno \
-  "Use default settings?\n\n  Container ID: ${CTID}\n  Hostname:     ${HN}\n  CPU / RAM:    ${CORES} core, ${RAM} MB\n  Disk:         ${DISK} GB\n  Network:      ${BRIDGE}, DHCP\n  OS:           Debian 12, unprivileged" 16 58; then
+  "Use default settings?\n\n  Container ID: ${CTID}\n  Hostname:     ${HN}\n  CPU / RAM:    ${CORES} core, ${RAM} MB\n  Disk:         ${DISK} GB\n  Network:      ${BRIDGE}, DHCP\n  OS:           Debian 12, unprivileged\n  Console:      automatic root login" 17 58; then
   :
 else
   CTID=$(whiptail --title "Container ID" --inputbox "Container ID" 8 58 "$CTID" 3>&1 1>&2 2>&3) || cancelled
@@ -142,6 +142,18 @@ else
   if [[ "$NET" != "dhcp" ]]; then
     GATE=$(whiptail --title "Gateway" --inputbox "Gateway IP" 8 58 "" 3>&1 1>&2 2>&3) || cancelled
   fi
+  while true; do
+    ROOT_PW=$(whiptail --title "Root password" --passwordbox \
+      "Root password for the container console.\n\nLeave blank for automatic login on the Proxmox console (like Community Scripts)." 11 64 3>&1 1>&2 2>&3) || cancelled
+    [[ -z "$ROOT_PW" ]] && break
+    if [[ ${#ROOT_PW} -lt 5 ]]; then
+      whiptail --title "Root password" --msgbox "Use at least 5 characters, or leave it blank." 8 58
+      continue
+    fi
+    PW_AGAIN=$(whiptail --title "Root password" --passwordbox "Type it again" 8 58 3>&1 1>&2 2>&3) || cancelled
+    [[ "$ROOT_PW" == "$PW_AGAIN" ]] && break
+    whiptail --title "Root password" --msgbox "The passwords didn't match. Try again." 8 58
+  done
 fi
 
 if pct status "$CTID" &>/dev/null || qm status "$CTID" &>/dev/null; then
@@ -183,6 +195,7 @@ pct create "$CTID" "${TEMPLATE_STORAGE}:vztmpl/${TEMPLATE}" \
   --net0 "$NET0" \
   --ostype debian --unprivileged 1 --features nesting=1 \
   --onboot 1 --tags "$TAGS" \
+  ${ROOT_PW:+--password "$ROOT_PW"} \
   --description "<div align='center'><h2>SwyfTech Client Portal</h2><p>Update: run <code>update</code> in the console.<br>Admin: <code>portal-cli --help</code></p></div>" \
   >/dev/null
 msg_ok "Created LXC container ${CTID}"
@@ -205,7 +218,7 @@ rm -f "$INSTALLER"
 msg_ok "Installer ready"
 
 pct exec "$CTID" -- env LANG=C.UTF-8 LC_ALL=C.UTF-8 REPO="$REPO" BRANCH="$BRANCH" PORT="$var_port" \
-  STAFF_EMAIL="$STAFF_EMAIL" STAFF_NAME="$STAFF_NAME" BASE_URL="$PUBLIC_URL" \
+  STAFF_EMAIL="$STAFF_EMAIL" STAFF_NAME="$STAFF_NAME" BASE_URL="$PUBLIC_URL" AUTOLOGIN="$([[ -z "$ROOT_PW" ]] && echo 1 || echo 0)" \
   bash /root/${NSAPP}-install.sh
 
 IP=$(pct exec "$CTID" -- hostname -I | awk '{print $1}')
@@ -213,4 +226,9 @@ echo
 msg_ok "Completed successfully!"
 echo -e " ${INFO} ${YW}${APP} is running at:${CL} ${BOLD}http://${IP}:${var_port}${CL}"
 echo -e " ${INFO} ${YW}Your staff login is saved in the container at${CL} /root/swyftech-portal.creds"
+if [[ -z "$ROOT_PW" ]]; then
+  echo -e " ${INFO} ${YW}Console:${CL} opens logged in as root (Proxmox > ${CTID} > Console), or run ${BOLD}pct enter ${CTID}${CL}"
+else
+  echo -e " ${INFO} ${YW}Console:${CL} log in as root with the password you chose"
+fi
 echo -e " ${INFO} ${YW}Next: put it behind HTTPS (Nginx Proxy Manager, Caddy or a Cloudflare Tunnel), then set BASE_URL in /opt/swyftech-portal/.env${CL}"

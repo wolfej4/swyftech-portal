@@ -197,6 +197,42 @@ if [[ -n "$STAFF_EMAIL" ]]; then
   fi
 fi
 
+if [[ "${AUTOLOGIN:-0}" == "1" ]]; then
+  msg_info "Setting up automatic console login"
+  # Same approach as Community Scripts: the Proxmox console opens already logged in as root.
+  # Only people who can open the console in Proxmox (who could also run pct enter) get this.
+  GETTY_OVERRIDE=/etc/systemd/system/container-getty@1.service.d/override.conf
+  mkdir -p "$(dirname "$GETTY_OVERRIDE")"
+  cat >"$GETTY_OVERRIDE" <<'GETTYEOF'
+[Service]
+ExecStart=
+ExecStart=-/sbin/agetty --autologin root --noclear --keep-baud tty%I 115200,38400,9600 $TERM
+GETTYEOF
+  systemctl daemon-reload
+  systemctl restart container-getty@1.service 2>/dev/null || true
+  msg_ok "Console logs in automatically"
+fi
+
+msg_info "Adding a welcome message"
+{
+  echo "# Shown when you open the container console. Written by the SwyfTech portal installer."
+  echo "PORTAL_PORT=${PORT}"
+  cat <<'MOTDEOF'
+case $- in *i*) ;; *) return 0 2>/dev/null || exit 0 ;; esac
+portal_url=$(grep -m1 '^BASE_URL=' /opt/swyftech-portal/.env 2>/dev/null | cut -d= -f2-)
+portal_ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+portal_state=$(systemctl is-active swyftech-portal 2>/dev/null)
+printf '\n  \033[1;36mSwyfTech Client Portal\033[0m  (%s)\n' "${portal_state:-unknown}"
+printf '  Address:   %s\n' "${portal_url:-http://${portal_ip}:${PORTAL_PORT}}"
+[ -n "$portal_url" ] && [ "${portal_url#*"$portal_ip"}" = "$portal_url" ] && printf '  Local:     http://%s:%s\n' "$portal_ip" "$PORTAL_PORT"
+printf '  Settings:  /opt/swyftech-portal/.env\n'
+printf '  Commands:  update   portal-cli --help   journalctl -u swyftech-portal -f\n\n'
+unset portal_url portal_ip portal_state
+MOTDEOF
+} >/etc/profile.d/swyftech-portal.sh
+chmod 644 /etc/profile.d/swyftech-portal.sh
+msg_ok "Welcome message added"
+
 msg_info "Cleaning up"
 apt-get -y -qq autoremove >/dev/null
 apt-get -y -qq autoclean >/dev/null

@@ -44,6 +44,8 @@ Documents marked **Owner and Billing only** (good for contracts with pricing) ar
 
 The script creates the container, installs the portal as a systemd service on port 8000, and prints your first staff password. It's also saved inside the container at `/root/swyftech-portal.creds`.
 
+Like the Community Scripts containers, the container has no root password by default, and its **Console** tab in Proxmox opens already logged in as root. That's only reachable by someone already signed in to Proxmox, who could get the same root shell with `pct enter <id>`. To require a password instead, choose **Advanced** and set one. The console then shows the portal's address and the useful commands each time it opens.
+
 To use a fork or a different branch: `REPO=you/your-fork BRANCH=dev bash -c "$(curl ...)"`.
 
 Why not the official Community Scripts? Their shared `build.func` is built to fetch install scripts from their own repository, so a custom app needs its own launcher. This one follows the same flow and adds an `update` command inside the container, just like theirs.
@@ -64,9 +66,27 @@ After that, always sign in through the HTTPS address. Signing in through `http:/
 
 If you put Cloudflare Access in front of the portal, add a bypass policy for `/stripe/webhook` so Stripe can reach it.
 
+## Admin
+
+Admins see an **Admin** link in the sidebar with four sections:
+
+- **Business details:** business name, support email and phone, sign-in tagline, invoice footer and due days.
+- **Email:** SMTP server, port, security, login and sender, plus where SwyfTech alerts go. **Send test email** sends right away and shows the server's reason if it fails. The SMTP password is encrypted with a key derived from `SECRET_KEY`, so the database or its backups alone don't reveal it. If you ever change `SECRET_KEY`, re-enter the password.
+- **SwyfTech staff:** invite staff, choose Admin or Technician, send a password reset link, reset someone's authenticator, unlock them or turn them off. You can't change your own access, and there's always at least one active Admin.
+- **Sign-in and security:** shortest password, wrong tries before a pause, pause length, and how long people stay signed in (applies right away). **Sign everyone out** ends every session but yours. Authenticator apps are always required.
+
+Anything saved here overrides `.env` without a restart. Each field says whether its value is "From .env" or "Set here", with a link to go back to the `.env` value. Every change is recorded in the audit log.
+
+| Staff role | Requests, clients, visits, documents, guides | Invoices, reports, visit hours | Admin |
+|---|---|---|---|
+| Admin | Yes | Yes | Yes |
+| Technician | Yes | No | No |
+
+The first staff account (from the installer or `portal-cli create-staff`) is an Admin. Add `--technician` to create a Technician from the command line. Client people's pages also have a **Password reset link** button, which is handy when email isn't set up: the link is shown on screen to copy.
+
 ## Settings
 
-Everything lives in `/opt/swyftech-portal/.env`. `example.env` in the repo lists every option with notes. Restart the service after changes.
+Everything lives in `/opt/swyftech-portal/.env`. Settings changed under Admin take priority over it. `example.env` in the repo lists every option with notes. Restart the service after changes.
 
 | Setting | What it does |
 |---|---|
@@ -196,7 +216,7 @@ A few things to know:
 ## Admin commands (inside the container)
 
 ```bash
-portal-cli create-staff --email you@swyftech.net --name "Jacob"
+portal-cli create-staff --email you@swyftech.net --name "Jacob"   # add --technician for a Technician
 portal-cli reset-mfa --email person@client.com       # new phone, lost backup codes
 portal-cli reset-password --email person@client.com
 portal-cli list-users
@@ -248,6 +268,8 @@ app/
   routes_files.py    permission-checked downloads
   reports.py         monthly report numbers, drafts and sending
   routes_reports.py  report pages for clients and staff
+  routes_admin.py    Admin: business details, email, staff, sign-in and security
+  overrides.py       settings saved in the portal, layered over .env
   cli.py             portal-cli
   templates/         Jinja2 pages
   static/            CSS, htmx, fonts (Chakra Petch, Atkinson Hyperlegible), logo
