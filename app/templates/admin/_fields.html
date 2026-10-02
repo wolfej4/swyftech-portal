@@ -1,0 +1,32 @@
+{# Renders FIELDS for one section. Values come from what was just posted (on an error) or the live setting. #}
+{% macro render(fields, section, errors, posted, overridden, env) %}
+{% for name, label, hint, kind, extra in fields %}
+  {% set current = posted[name] if posted is defined and posted and name in posted else cfg[name] %}
+  <div class="field">
+    <label for="f-{{ name }}">{{ label }}{% if hint %}<span class="hint">{{ hint }}</span>{% endif %}</label>
+    {% if kind == 'select' %}
+      <select id="f-{{ name }}" name="{{ name }}">{% for v, l in extra %}<option value="{{ v }}" {% if current == v %}selected{% endif %}>{{ l }}</option>{% endfor %}</select>
+    {% elif kind == 'password' %}
+      <input id="f-{{ name }}" name="{{ name }}" type="password" autocomplete="new-password" placeholder="{{ 'A password is saved' if cfg[name] else '' }}">
+    {% elif kind == 'number' %}
+      <input id="f-{{ name }}" name="{{ name }}" type="number" min="{{ extra[0] }}" max="{{ extra[1] }}" value="{{ current }}" style="max-width: 10rem">
+    {% else %}
+      <input id="f-{{ name }}" name="{{ name }}" type="{{ 'email' if kind == 'email' else 'text' }}" value="{{ current }}">
+    {% endif %}
+    {% if errors and name in errors %}<span class="field-error" role="alert">{{ errors[name] }}</span>{% endif %}
+    <span class="source">
+      {% if name in overridden %}Set here.
+        <button class="linklike small" type="submit" form="reset-{{ name }}">Use the .env value{% if kind != 'password' %} ({{ env(name) if env(name) not in ('', None) else 'blank' }}){% endif %}</button>
+      {% else %}From .env{% endif %}
+    </span>
+  </div>
+{% endfor %}
+{% endmacro %}
+
+{% macro reset_forms(fields, section, overridden, csrf) %}
+{% for name, label, hint, kind, extra in fields if name in overridden %}
+  <form id="reset-{{ name }}" method="post" action="/staff/admin/reset/{{ name }}" hidden>
+    <input type="hidden" name="csrf_token" value="{{ csrf }}"><input type="hidden" name="section" value="{{ section }}">
+  </form>
+{% endfor %}
+{% endmacro %}

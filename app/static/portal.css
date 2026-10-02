@@ -162,6 +162,9 @@ legend { font-weight: 700; margin-bottom: .4rem; color: var(--night); }
 .choice { display: flex; gap: .7rem; align-items: center; padding: .65rem .85rem; border: 1px solid var(--line); border-radius: var(--r-sm); background: #fff; font-weight: 400; cursor: pointer; }
 .choice:has(input:checked) { border-color: var(--flight); background: var(--info-bg); }
 .choice input { width: 1.05rem; height: 1.05rem; margin: 0; }
+.field-error { display: block; color: var(--bad); font-weight: 700; font-size: .92rem; margin-top: .3rem; }
+.field .source { display: block; color: var(--feather); font-size: .85rem; margin-top: .3rem; }
+.field .source .linklike { font-size: .85rem; }
 .form-actions { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-top: .5rem; }
 
 /* ---- buttons -------------------------------------------------------- */

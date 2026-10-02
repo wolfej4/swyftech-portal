@@ -25,8 +25,10 @@
 <div class="figures">
   <a class="figure-card" href="/staff/tickets"><span class="v">{{ (counts.get('open', 0) + counts.get('in_progress', 0)) }}</span><span class="k">Requests to work</span></a>
   <a class="figure-card" href="/staff/tickets?show=waiting"><span class="v">{{ counts.get('waiting', 0) }}</span><span class="k">Waiting on clients</span></a>
+  {% if can('money') %}
   <a class="figure-card" href="/staff/invoices"><span class="v">{{ outstanding | money }}</span><span class="k">Unpaid, {{ overdue | length }} overdue</span></a>
   <div class="figure-card"><span class="v">{{ paid_month | money }}</span><span class="k">Collected this month</span></div>
+  {% endif %}
   <a class="figure-card" href="/staff/visits"><span class="v">{{ to_confirm }}</span><span class="k">Visits to confirm</span></a>
   <div class="figure-card"><span class="v">{{ (ratings.great_pct ~ '%') if ratings.total else 'None yet' }}</span><span class="k">Rated great{% if ratings.total %}, {{ ratings.total }} {{ 'rating' if ratings.total == 1 else 'ratings' }} in 90 days{% endif %}</span></div>
   <a class="figure-card" href="/staff/clients"><span class="v">{{ clients }}</span><span class="k">Active clients</span></a>
@@ -44,6 +46,7 @@
     {% endfor %}
     </ul>
   </section>
+  {% if can('money') %}
   <section class="panel">
     <div class="panel-head"><h2>Unpaid invoices</h2><a href="/staff/invoices">All invoices</a></div>
     <ul class="rows">
@@ -55,6 +58,7 @@
     {% endfor %}
     </ul>
   </section>
+  {% endif %}
 </div>
 <div class="grid-2" style="margin-top:1.25rem">
   <section class="panel">

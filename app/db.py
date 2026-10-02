@@ -202,6 +202,7 @@ MIGRATIONS = [
     ("tickets", "asset_label", "TEXT NOT NULL DEFAULT ''"),
     ("tickets", "resolved_at", "TEXT"),
     ("documents", "storage", "TEXT NOT NULL DEFAULT 'local'"),
+    ("users", "staff_admin", "INTEGER NOT NULL DEFAULT 0"),
 ]
 
 # Keep tickets.resolved_at accurate however the status changes (staff, client, or a reply reopening it).
@@ -241,6 +242,8 @@ def init() -> None:
             existing = {row[1] for row in conn.execute(f"PRAGMA table_info({table})")}
             if column not in existing:
                 conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {decl}")
+                if (table, column) == ("users", "staff_admin"):  # everyone on staff before roles existed is an Admin
+                    conn.execute("UPDATE users SET staff_admin = 1 WHERE role = 'staff'")
                 if (table, column) == ("tickets", "resolved_at"):  # best guess for requests resolved before this existed
                     conn.execute("UPDATE tickets SET resolved_at = updated_at WHERE status IN ('resolved','closed')")
         conn.executescript(TRIGGERS)

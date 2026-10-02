@@ -1,0 +1,6 @@
+<div class="page-head"><div><h1>Admin</h1><p>Settings for the whole portal. Only Admins can see this.</p></div></div>
+<nav class="tabs" aria-label="Admin sections">
+  {% for key, label in [('business', 'Business details'), ('email', 'Email'), ('staff', 'SwyfTech staff'), ('security', 'Sign-in and security')] %}
+  <a href="/staff/admin/{{ key }}" {% if tab == key %}aria-current="page"{% endif %}>{{ label }}</a>
+  {% endfor %}
+</nav>

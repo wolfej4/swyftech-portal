@@ -7,7 +7,7 @@ from fastapi.responses import RedirectResponse, Response
 
 from . import config, db, mailer, visits
 from .web import (
-    client_ip, flash, render, require_client, require_perm, require_staff, templates, verify_csrf,
+    client_ip, require_admin, flash, render, require_client, require_perm, require_staff, templates, verify_csrf,
 )
 
 router = APIRouter()
@@ -269,7 +269,7 @@ def staff_visit_action(request: Request, visit_id: int, action: str = Form(...),
 
 @router.get("/staff/visit-hours")
 def staff_visit_hours(request: Request):
-    user = require_staff(request)
+    user = require_admin(request)
     cfg = visits.settings()
     upcoming_off = db.all("SELECT * FROM time_off WHERE end_utc >= ? ORDER BY start_utc", (_now(),))
     start = datetime.now(UTC)
@@ -282,7 +282,7 @@ def staff_visit_hours(request: Request):
 
 @router.post("/staff/visit-hours", dependencies=CSRF)
 async def staff_visit_hours_save(request: Request):
-    user = require_staff(request)
+    user = require_admin(request)
     form = await request.form()
     hours = {}
     for i in range(7):
@@ -321,7 +321,7 @@ async def staff_visit_hours_save(request: Request):
 @router.post("/staff/visit-hours/time-off", dependencies=CSRF)
 def staff_time_off_add(request: Request, start_day: str = Form(...), end_day: str = Form(""), start_at: str = Form(""),
                        end_at: str = Form(""), note: str = Form("")):
-    require_staff(request)
+    require_admin(request)
     try:
         start = _parse_local(start_day, start_at or "00:00")
         end = _parse_local(end_day or start_day, end_at or "23:59")
@@ -338,7 +338,7 @@ def staff_time_off_add(request: Request, start_day: str = Form(...), end_day: st
 
 @router.post("/staff/visit-hours/time-off/{off_id}/delete", dependencies=CSRF)
 def staff_time_off_delete(request: Request, off_id: int):
-    require_staff(request)
+    require_admin(request)
     db.run("DELETE FROM time_off WHERE id = ?", (off_id,))
     flash(request, "Time off removed.")
     return RedirectResponse("/staff/visit-hours", status_code=303)
@@ -346,7 +346,7 @@ def staff_time_off_delete(request: Request, off_id: int):
 
 @router.post("/staff/visit-hours/feed", dependencies=CSRF)
 def staff_feed_rotate(request: Request):
-    user = require_staff(request)
+    user = require_admin(request)
     visits.feed_key(rotate=True)
     db.audit(user["id"], "visits.feed_rotated", "", client_ip(request))
     flash(request, "New calendar link made. The old one stopped working, so update it in your calendar app.", "warn")

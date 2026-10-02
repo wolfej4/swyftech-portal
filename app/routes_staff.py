@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import RedirectResponse
 
 from . import accounts, attachments, config, db, feedback, mailer, payments, snipeit, storage, visits
-from .web import client_ip, flash, money, render, require_staff, templates, verify_csrf
+from .web import client_ip, flash, money, render, require_admin, require_staff, templates, verify_csrf
 
 router = APIRouter(prefix="/staff")
 CSRF = [Depends(verify_csrf)]
@@ -191,6 +191,10 @@ def user_action(request: Request, user_id: int, action: str = Form(...), role: s
     elif action == "unlock":
         db.run("UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?", (user_id,))
         flash(request, f"{label} is unlocked.")
+    elif action == "reset_link" and person["password_hash"]:
+        link, emailed = accounts.send_reset(user_id)
+        flash(request, f"Password reset link emailed to {person['email']}." if emailed
+              else f"Send this password reset link to {person['email']} (works for 24 hours): {link}", "ok" if emailed else "link")
     elif action == "resend":
         link, emailed = accounts.send_invite(user_id, staff["name"] or config.BUSINESS_NAME)
         flash(request, f"Invite sent again to {person['email']}." if emailed else f"Send this invite link to {person['email']}: {link}",
@@ -313,7 +317,7 @@ def ticket_update(request: Request, ticket_id: int, status: str = Form(...), pri
 
 @router.get("/invoices")
 def invoices(request: Request, show: str = "open"):
-    user = require_staff(request)
+    user = require_admin(request)
     where = {"open": "i.status IN ('draft','sent')", "paid": "i.status = 'paid'", "all": "1=1"}.get(show, "i.status IN ('draft','sent')")
     rows = db.all(f"SELECT i.*, c.name AS client_name FROM invoices i JOIN clients c ON c.id = i.client_id WHERE {where} "
                   "ORDER BY CASE i.status WHEN 'draft' THEN 0 WHEN 'sent' THEN 1 ELSE 2 END, i.due_date DESC, i.id DESC LIMIT 300")
@@ -323,7 +327,7 @@ def invoices(request: Request, show: str = "open"):
 
 @router.post("/invoices", dependencies=CSRF)
 def invoice_create(request: Request, client_id: int = Form(...)):
-    user = require_staff(request)
+    user = require_admin(request)
     _client_or_404(client_id)
     today = date.today()
     iid = db.run(
@@ -347,7 +351,7 @@ def _items(invoice_id: int):
 
 @router.get("/invoices/{invoice_id}")
 def invoice_detail(request: Request, invoice_id: int):
-    user = require_staff(request)
+    user = require_admin(request)
     inv = _staff_invoice(invoice_id)
     client = db.one("SELECT * FROM clients WHERE id = ?", (inv["client_id"],))
     return render(request, "staff/invoice.html", user=user, nav="s-invoices", inv=inv, client=client, items=_items(invoice_id))
@@ -360,7 +364,7 @@ def _items_fragment(request: Request, inv):
 
 @router.post("/invoices/{invoice_id}/items", dependencies=CSRF)
 def invoice_add_item(request: Request, invoice_id: int, description: str = Form(...), quantity: str = Form("1"), unit_price: str = Form("0")):
-    require_staff(request)
+    require_admin(request)
     inv = _staff_invoice(invoice_id)
     if inv["status"] == "draft" and description.strip():
         pos = db.one("SELECT COALESCE(MAX(position), 0) + 1 AS p FROM invoice_items WHERE invoice_id = ?", (invoice_id,))["p"]
@@ -373,7 +377,7 @@ def invoice_add_item(request: Request, invoice_id: int, description: str = Form(
 
 @router.post("/invoices/{invoice_id}/items/{item_id}/delete", dependencies=CSRF)
 def invoice_delete_item(request: Request, invoice_id: int, item_id: int):
-    require_staff(request)
+    require_admin(request)
     inv = _staff_invoice(invoice_id)
     if inv["status"] == "draft":
         db.run("DELETE FROM invoice_items WHERE id = ? AND invoice_id = ?", (item_id, invoice_id))
@@ -384,7 +388,7 @@ def invoice_delete_item(request: Request, invoice_id: int, item_id: int):
 
 @router.post("/invoices/{invoice_id}/details", dependencies=CSRF)
 def invoice_details(request: Request, invoice_id: int, issue_date: str = Form(...), due_date: str = Form(...), notes: str = Form("")):
-    require_staff(request)
+    require_admin(request)
     inv = _staff_invoice(invoice_id)
     try:
         issue, due = date.fromisoformat(issue_date), date.fromisoformat(due_date)
@@ -399,7 +403,7 @@ def invoice_details(request: Request, invoice_id: int, issue_date: str = Form(..
 
 @router.post("/invoices/{invoice_id}/send", dependencies=CSRF)
 def invoice_send(request: Request, invoice_id: int):
-    user = require_staff(request)
+    user = require_admin(request)
     inv = _staff_invoice(invoice_id)
     total = db.invoice_total(invoice_id)
     if inv["status"] != "draft":
@@ -427,7 +431,7 @@ def invoice_send(request: Request, invoice_id: int):
 
 @router.post("/invoices/{invoice_id}/mark-paid", dependencies=CSRF)
 def invoice_mark_paid(request: Request, invoice_id: int, method: str = Form("Check"), reference: str = Form("")):
-    user = require_staff(request)
+    user = require_admin(request)
     if payments.mark_paid(invoice_id, method.strip()[:40] or "Other", reference.strip()[:80], user["id"]):
         flash(request, "Marked as paid.")
     return RedirectResponse(f"/staff/invoices/{invoice_id}", status_code=303)
@@ -435,7 +439,7 @@ def invoice_mark_paid(request: Request, invoice_id: int, method: str = Form("Che
 
 @router.post("/invoices/{invoice_id}/void", dependencies=CSRF)
 def invoice_void(request: Request, invoice_id: int):
-    user = require_staff(request)
+    user = require_admin(request)
     inv = _staff_invoice(invoice_id)
     if inv["status"] == "draft":
         db.run("DELETE FROM invoices WHERE id = ?", (invoice_id,))

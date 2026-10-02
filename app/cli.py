@@ -20,14 +20,14 @@ def _password() -> str:
     return words
 
 
-def create_staff(email: str, name: str) -> None:
+def create_staff(email: str, name: str, technician: bool = False) -> None:
     db.init()
     if db.one("SELECT 1 FROM users WHERE email = ?", (email,)):
         sys.exit(f"{email} already exists.")
     pw = _password()
-    db.run("INSERT INTO users (client_id, email, name, role, password_hash, created_at) VALUES (NULL,?,?,'staff',?,?)",
-           (email, name, security.hash_password(pw), db.now()))
-    print(f"Staff account created.\n  Email:    {email}\n  Password: {pw}\n"
+    db.run("INSERT INTO users (client_id, email, name, role, password_hash, staff_admin, created_at) VALUES (NULL,?,?,'staff',?,?,?)",
+           (email, name, security.hash_password(pw), 0 if technician else 1, db.now()))
+    print(f"Staff account created ({'Technician' if technician else 'Admin'}).\n  Email:    {email}\n  Password: {pw}\n"
           "Sign in, then connect your authenticator app. Change the password under Account.")
 
 
@@ -127,6 +127,7 @@ def main() -> None:
     p = sub.add_parser("create-staff", help="Create a SwyfTech staff login")
     p.add_argument("--email", required=True)
     p.add_argument("--name", default="")
+    p.add_argument("--technician", action="store_true", help="No access to billing, reports or Admin settings")
     for cmd in ("reset-mfa", "reset-password"):
         sub.add_parser(cmd).add_argument("--email", required=True)
     sub.add_parser("list-users")
@@ -137,7 +138,7 @@ def main() -> None:
     mr.add_argument("--month", default=None)
     args = parser.parse_args()
     db.init()
-    {"create-staff": lambda: create_staff(args.email, args.name),
+    {"create-staff": lambda: create_staff(args.email, args.name, args.technician),
      "reset-mfa": lambda: reset_mfa(args.email),
      "reset-password": lambda: reset_password(args.email),
      "list-users": list_users,

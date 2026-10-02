@@ -73,6 +73,11 @@ S3_PREFIX = os.getenv("S3_PREFIX", "swyftech-portal/").lstrip("/")
 S3_FORCE_PATH_STYLE = _bool("S3_FORCE_PATH_STYLE", bool(S3_ENDPOINT_URL))
 S3_VERIFY_TLS = _bool("S3_VERIFY_TLS", True)
 
+# Sign-in rules (also editable under Admin > Sign-in and security)
+MIN_PASSWORD_LENGTH = int(os.getenv("MIN_PASSWORD_LENGTH", "12"))
+MAX_FAILED_ATTEMPTS = int(os.getenv("MAX_FAILED_ATTEMPTS", "5"))
+LOCKOUT_MINUTES = int(os.getenv("LOCKOUT_MINUTES", "15"))
+
 MAX_UPLOAD_MB = int(os.getenv("MAX_UPLOAD_MB", "25"))
 MAX_FILES_PER_MESSAGE = int(os.getenv("MAX_FILES_PER_MESSAGE", "5"))
 SESSION_HOURS = int(os.getenv("SESSION_HOURS", "12"))

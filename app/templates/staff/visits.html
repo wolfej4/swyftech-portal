@@ -4,7 +4,7 @@
 {% block content %}
 <div class="page-head">
   <div><h1>Visits</h1><p>Confirm bookings, move times, and schedule visits yourself.</p></div>
-  <a class="btn secondary" href="/staff/visit-hours">Visit hours and calendar</a>
+  {% if can('admin') %}<a class="btn secondary" href="/staff/visit-hours">Visit hours and calendar</a>{% endif %}
 </div>
 
 <section class="panel">

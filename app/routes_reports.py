@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from fastapi.responses import RedirectResponse
 
 from . import db, reports
-from .web import client_ip, flash, render, require_client, require_perm, require_staff, verify_csrf
+from .web import client_ip, flash, render, require_admin, require_client, require_perm, verify_csrf
 
 router = APIRouter()
 CSRF = [Depends(verify_csrf)]
@@ -53,7 +53,7 @@ def client_report(request: Request, month: str):
 
 @router.get("/staff/reports")
 def staff_reports(request: Request, month: str = ""):
-    user = require_staff(request)
+    user = require_admin(request)
     month = month if reports.valid_month(month) else reports.last_month()
     rows = []
     for c in db.all("SELECT * FROM clients WHERE active = 1 ORDER BY name"):
@@ -66,7 +66,7 @@ def staff_reports(request: Request, month: str = ""):
 
 @router.post("/staff/reports/settings", dependencies=CSRF)
 def staff_reports_settings(request: Request, auto_send: str = Form(""), month: str = Form("")):
-    user = require_staff(request)
+    user = require_admin(request)
     db.set_setting("reports_auto_send", "1" if auto_send == "1" else "0")
     db.audit(user["id"], "reports.auto_send", auto_send or "0", client_ip(request))
     flash(request, "Reports will be sent automatically on the 1st." if auto_send == "1"
@@ -76,7 +76,7 @@ def staff_reports_settings(request: Request, auto_send: str = Form(""), month: s
 
 @router.post("/staff/reports/{month}/send-all", dependencies=CSRF)
 def staff_reports_send_all(request: Request, month: str):
-    user = require_staff(request)
+    user = require_admin(request)
     _check_month(month)
     sent = 0
     for c in reports.active_clients():
@@ -90,7 +90,7 @@ def staff_reports_send_all(request: Request, month: str):
 
 @router.get("/staff/reports/{client_id}/{month}")
 def staff_report(request: Request, client_id: int, month: str):
-    user = require_staff(request)
+    user = require_admin(request)
     _check_month(month)
     client = db.one("SELECT * FROM clients WHERE id = ?", (client_id,))
     if not client:
@@ -102,7 +102,7 @@ def staff_report(request: Request, client_id: int, month: str):
 
 @router.post("/staff/reports/{client_id}/{month}/note", dependencies=CSRF)
 def staff_report_note(request: Request, client_id: int, month: str, note: str = Form("")):
-    require_staff(request)
+    require_admin(request)
     _check_month(month)
     reports.save_note(client_id, month, note)
     flash(request, "Note saved.")
@@ -111,7 +111,7 @@ def staff_report_note(request: Request, client_id: int, month: str, note: str = 
 
 @router.post("/staff/reports/{client_id}/{month}/send", dependencies=CSRF)
 def staff_report_send(request: Request, client_id: int, month: str, note: str = Form(None)):
-    user = require_staff(request)
+    user = require_admin(request)
     _check_month(month)
     if note is not None:
         reports.save_note(client_id, month, note)

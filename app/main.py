@@ -8,13 +8,14 @@ from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import config, db, payments
+from . import config, db, overrides, payments
 from .routes_auth import router as auth_router
 from .routes_client import router as client_router
 from .routes_staff import router as staff_router
 from .routes_visits import router as visits_router
 from .routes_files import router as files_router
 from .routes_reports import router as reports_router
+from .routes_admin import router as admin_router
 from .web import render
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -25,6 +26,7 @@ if not config.SECRET_KEY:
     config.SECRET_KEY = secrets.token_urlsafe(48)
 
 db.init()
+overrides.load()
 
 app = FastAPI(title="SwyfTech Client Portal", docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -43,6 +45,8 @@ async def security_headers(request: Request, call_next):
     length = request.headers.get("content-length", "")
     if length.isdigit() and int(length) > MAX_BODY:
         return PlainTextResponse(f"Upload too large. Files can be up to {config.MAX_UPLOAD_MB} MB each.", status_code=413)
+    if not request.url.path.startswith("/static"):
+        overrides.sync()  # pick up settings another worker just saved
     response = await call_next(request)
     response.headers.setdefault("Content-Security-Policy", CSP)
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
@@ -59,7 +63,7 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=config.SECRET_KEY,
     session_cookie="swyftech_portal",
-    max_age=config.SESSION_HOURS * 3600,
+    max_age=14 * 24 * 3600,  # upper limit; the session length setting is enforced in web.current_user
     same_site="lax",
     https_only=config.SECURE_COOKIES,
 )
@@ -71,6 +75,7 @@ app.include_router(staff_router)
 app.include_router(visits_router)
 app.include_router(files_router)
 app.include_router(reports_router)
+app.include_router(admin_router)
 
 
 @app.exception_handler(StarletteHTTPException)

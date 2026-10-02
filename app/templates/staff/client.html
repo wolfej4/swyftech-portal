@@ -5,7 +5,7 @@
 <a class="crumb" href="/staff/clients">Clients</a>
 <div class="page-head">
   <div><h1>{{ client.name }}</h1><p>{% if client.active %}Client since {{ client.created_at | nice_date }}{% else %}Inactive. Their people can't sign in.{% endif %}</p></div>
-  <form method="post" action="/staff/invoices">{{ m.csrf_field(csrf) }}<input type="hidden" name="client_id" value="{{ client.id }}"><button class="btn" type="submit">New invoice</button></form>
+  {% if can('money') %}<form method="post" action="/staff/invoices">{{ m.csrf_field(csrf) }}<input type="hidden" name="client_id" value="{{ client.id }}"><button class="btn" type="submit">New invoice</button></form>{% endif %}
 </div>
 
 <section class="panel">
@@ -34,6 +34,7 @@
         </td>
         <td class="num">
           {% if not p.password_hash and p.active %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="resend">Resend invite</button></form>{% endif %}
+          {% if p.active and p.password_hash %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="reset_link">Password reset link</button></form>{% endif %}
           {% if p.locked_until %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="unlock">Unlock</button></form>{% endif %}
           {% if p.totp_enabled %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form" data-confirm="Reset the authenticator for {{ p.email }}? Only do this after confirming who they are by phone.">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="reset_mfa">Reset app</button></form>{% endif %}
           {% if p.active %}<form method="post" action="/staff/users/{{ p.id }}" class="inline-form" data-confirm="Turn off portal access for {{ p.email }}?">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="disable">Turn off</button></form>
@@ -102,6 +103,7 @@
     {% else %}<li class="empty">No requests yet.</li>{% endfor %}
     </ul>
   </section>
+  {% if can('money') %}
   <section class="panel">
     <div class="panel-head"><h2>Invoices</h2></div>
     <ul class="rows">
@@ -110,6 +112,7 @@
     {% else %}<li class="empty">No invoices yet.</li>{% endfor %}
     </ul>
   </section>
+  {% endif %}
 </div>
 
 <section class="panel" style="margin-top:1.25rem">

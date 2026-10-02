@@ -1,0 +1,13 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% import "admin/_fields.html" as f with context %}
+{% block title %}Business details{% endblock %}
+{% block content %}
+{% include "admin/_tabs.html" %}
+<form class="panel page-narrow" method="post" action="/staff/admin/business">
+  {{ m.csrf_field(csrf) }}
+  {{ f.render(fields, 'business', errors, posted, overridden, env) }}
+  <button class="btn" type="submit">Save</button>
+</form>
+{{ f.reset_forms(fields, 'business', overridden, csrf) }}
+{% endblock %}

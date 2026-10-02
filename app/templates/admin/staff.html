@@ -1,0 +1,67 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% block title %}SwyfTech staff{% endblock %}
+{% block content %}
+{% include "admin/_tabs.html" %}
+{{ m.error(error) }}
+<section class="panel">
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Person</th><th>Role</th><th>Sign-in</th><th><span class="sr-only">Actions</span></th></tr></thead>
+    <tbody>
+    {% for p in people %}
+      <tr>
+        <td><strong>{{ p.name or 'Invited' }}</strong>{% if p.id == user.id %} (you){% endif %}<br><span class="muted small">{{ p.email }}</span></td>
+        <td>
+          {% if p.id != user.id and p.active %}
+          <form method="post" action="/staff/admin/staff/{{ p.id }}" class="toolbar" style="margin:0">
+            {{ m.csrf_field(csrf) }}<input type="hidden" name="action" value="access">
+            <label class="sr-only" for="a{{ p.id }}">Role for {{ p.email }}</label>
+            <select id="a{{ p.id }}" name="access"><option value="1" {% if p.staff_admin %}selected{% endif %}>Admin</option><option value="0" {% if not p.staff_admin %}selected{% endif %}>Technician</option></select>
+            <button class="btn quiet small" type="submit">Save</button>
+          </form>
+          {% else %}{{ STAFF_ROLE_LABELS[p.staff_admin] }}{% endif %}
+        </td>
+        <td class="small">
+          {% if not p.active %}<span class="pill closed">Turned off</span>
+          {% elif not p.password_hash %}<span class="pill waiting">Invite pending</span>
+          {% elif not p.totp_enabled %}<span class="pill waiting">Needs app setup</span>
+          {% else %}<span class="pill paid">Active</span>{% endif %}
+          {% if p.locked_until %}<span class="pill overdue">Paused</span>{% endif %}
+          {% if p.last_login %}<br><span class="muted">Last in {{ p.last_login | ago }}</span>{% endif %}
+        </td>
+        <td class="num">
+          {% if p.active and not p.password_hash %}<form method="post" action="/staff/admin/staff/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="resend">Resend invite</button></form>{% endif %}
+          {% if p.locked_until %}<form method="post" action="/staff/admin/staff/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="unlock">Unlock</button></form>{% endif %}
+          {% if p.active and p.password_hash %}<form method="post" action="/staff/admin/staff/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="reset_link">Password reset link</button></form>{% endif %}
+          {% if p.id != user.id %}
+            {% if p.totp_enabled %}<form method="post" action="/staff/admin/staff/{{ p.id }}" class="inline-form" data-confirm="Reset the authenticator for {{ p.email }}?">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="reset_mfa">Reset app</button></form>{% endif %}
+            {% if p.active %}<form method="post" action="/staff/admin/staff/{{ p.id }}" class="inline-form" data-confirm="Turn off portal access for {{ p.email }}?">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="disable">Turn off</button></form>
+            {% else %}<form method="post" action="/staff/admin/staff/{{ p.id }}" class="inline-form">{{ m.csrf_field(csrf) }}<button class="btn quiet small" name="action" value="enable">Turn on</button></form>{% endif %}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+<section class="panel page-narrow">
+  <h2>Add someone to SwyfTech</h2>
+  <form method="post" action="/staff/admin/staff/invite">
+    {{ m.csrf_field(csrf) }}
+    <div class="field-row">
+      <div class="field"><label for="sn">Name</label><input id="sn" name="name" value="{{ form.name if form else '' }}"></div>
+      <div class="field"><label for="se">Email</label><input id="se" name="email" type="email" required value="{{ form.email if form else '' }}"></div>
+    </div>
+    <fieldset><legend>Role</legend>
+      <div class="choice-list">
+      {% for v in [0, 1] %}
+        <label class="choice"><input type="radio" name="access" value="{{ v }}" {% if (form.access if form else '0') == v|string %}checked{% endif %}> <span><strong>{{ STAFF_ROLE_LABELS[v] }}</strong><br><span class="muted small">{{ STAFF_ROLE_HELP[v] }}</span></span></label>
+      {% endfor %}
+      </div>
+    </fieldset>
+    <button class="btn" type="submit">Send invite</button>
+  </form>
+</section>
+{% endblock %}

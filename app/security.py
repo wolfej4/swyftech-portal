@@ -14,9 +14,7 @@ from . import config, db
 
 _hasher = PasswordHasher()
 
-MAX_FAILED_ATTEMPTS = 5
-LOCKOUT_MINUTES = 15
-MIN_PASSWORD_LENGTH = 12
+# Sign-in rules live in config so Admin > Sign-in and security can change them while running.
 
 
 # ---- passwords -------------------------------------------------------------
@@ -38,8 +36,8 @@ def password_problem(password: str, confirm: str, email: str = "") -> str | None
     """Return a plain-language reason the password can't be used, or None."""
     if password != confirm:
         return "The two passwords don't match. Type the same password in both boxes."
-    if len(password) < MIN_PASSWORD_LENGTH:
-        return f"Use at least {MIN_PASSWORD_LENGTH} characters. A short phrase like 'blue truck sunny dock' works well."
+    if len(password) < config.MIN_PASSWORD_LENGTH:
+        return f"Use at least {config.MIN_PASSWORD_LENGTH} characters. A short phrase like 'blue truck sunny dock' works well."
     if email and password.lower() == email.lower():
         return "Your password can't be your email address."
     return None
@@ -56,8 +54,8 @@ def is_locked(user) -> bool:
 def record_failure(user) -> None:
     attempts = user["failed_attempts"] + 1
     locked = None
-    if attempts >= MAX_FAILED_ATTEMPTS:
-        locked = (datetime.now(timezone.utc) + timedelta(minutes=LOCKOUT_MINUTES)).isoformat(timespec="seconds")
+    if attempts >= config.MAX_FAILED_ATTEMPTS:
+        locked = (datetime.now(timezone.utc) + timedelta(minutes=config.LOCKOUT_MINUTES)).isoformat(timespec="seconds")
         attempts = 0
     db.run("UPDATE users SET failed_attempts = ?, locked_until = ? WHERE id = ?", (attempts, locked, user["id"]))
 

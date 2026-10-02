@@ -1,0 +1,33 @@
+{% extends "layout.html" %}
+{% import "macros.html" as m %}
+{% import "admin/_fields.html" as f with context %}
+{% block title %}Email settings{% endblock %}
+{% block content %}
+{% include "admin/_tabs.html" %}
+<div class="grid-2">
+  <form class="panel" method="post" action="/staff/admin/email">
+    {{ m.csrf_field(csrf) }}
+    <p style="margin-top:0">{% if cfg.smtp_enabled() %}<span class="pill paid">Email is on</span>{% else %}<span class="pill waiting">Email is off</span> Invite and reset links show on screen instead.{% endif %}</p>
+    {{ f.render(fields, 'email', errors, posted, overridden, env) }}
+    <button class="btn" type="submit">Save</button>
+  </form>
+  <div class="stack">
+    <section class="panel">
+      <h2>Send a test</h2>
+      <p class="muted small">Save first, then send. If it fails, you'll see the reason the server gave.</p>
+      <form method="post" action="/staff/admin/email/test">
+        {{ m.csrf_field(csrf) }}
+        <div class="field"><label for="to">Send to</label><input id="to" name="to" type="email" required value="{{ user.email }}"></div>
+        <button class="btn secondary" type="submit">Send test email</button>
+      </form>
+    </section>
+    <section class="panel">
+      <h2>Tips</h2>
+      <p class="small"><strong>Microsoft 365:</strong> server smtp.office365.com, port 587, STARTTLS, and SMTP AUTH turned on for the mailbox. Microsoft is retiring basic-auth SMTP, so it may stop working.</p>
+      <p class="small"><strong>A sending service</strong> like SMTP2GO, Postmark or Amazon SES is more reliable and lands in inboxes more often. Set up SPF and DKIM for your domain either way.</p>
+      <p class="small" style="margin:0">Send from an address on your own domain, like support@ or portal@.</p>
+    </section>
+  </div>
+</div>
+{{ f.reset_forms(fields, 'email', overridden, csrf) }}
+{% endblock %}

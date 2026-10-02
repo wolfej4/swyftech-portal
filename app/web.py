@@ -1,5 +1,6 @@
 """Request helpers shared by every route: who's signed in, what they may do, and page rendering."""
 import secrets
+import time
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
@@ -46,12 +47,24 @@ PERMISSIONS = {
     "owner": {"tickets.all", "billing", "docs.billing", "team", "visits", "reports"},
     "billing": {"billing", "docs.billing", "visits", "reports"},
     "member": set(),
-    "staff": {"tickets.all", "billing", "docs.billing", "team", "staff", "visits", "reports"},
+    # SwyfTech staff: Technicians get this; Admins also get STAFF_ADMIN_EXTRA.
+    "staff": {"tickets.all", "docs.billing", "team", "staff", "visits"},
+}
+STAFF_ADMIN_EXTRA = {"admin", "money", "billing", "reports"}
+STAFF_ROLE_LABELS = {1: "Admin", 0: "Technician"}
+STAFF_ROLE_HELP = {
+    1: "Everything, including invoices, reports, visit hours and Admin settings",
+    0: "Requests, clients, visits, documents and guides. No billing, reports or settings",
 }
 
 
 def can(user, perm: str) -> bool:
-    return bool(user) and perm in PERMISSIONS.get(user["role"], set())
+    if not user:
+        return False
+    perms = PERMISSIONS.get(user["role"], set())
+    if user["role"] == "staff" and user["staff_admin"]:
+        perms = perms | STAFF_ADMIN_EXTRA
+    return perm in perms
 
 
 # ---- session & auth --------------------------------------------------------
@@ -66,6 +79,11 @@ def current_user(request: Request):
         return None
     user = db.one("SELECT * FROM users WHERE id = ? AND active = 1", (uid,))
     if not user or user["session_version"] != request.session.get("sv"):
+        request.session.clear()
+        return None
+    # Session length is checked here (not just by the cookie) so changing it under Admin applies at once.
+    started = request.session.get("iat", 0)
+    if time.time() - started > config.SESSION_HOURS * 3600:
         request.session.clear()
         return None
     if user["client_id"]:
@@ -97,6 +115,14 @@ def require_staff(request: Request):
     return user
 
 
+def require_admin(request: Request):
+    """SwyfTech staff with the Admin role."""
+    user = require_staff(request)
+    if not user["staff_admin"]:
+        raise HTTPException(status_code=403)
+    return user
+
+
 def require_perm(user, perm: str) -> None:
     if not can(user, perm):
         raise HTTPException(status_code=403)
@@ -107,6 +133,7 @@ def start_session(request: Request, user) -> None:
     request.session["uid"] = user["id"]
     request.session["sv"] = user["session_version"]
     request.session["csrf"] = secrets.token_urlsafe(24)
+    request.session["iat"] = int(time.time())
 
 
 def client_ip(request: Request) -> str:
@@ -229,7 +256,7 @@ templates.env.filters.update(
     markdown=render_markdown, filesize=filesize,
 )
 templates.env.globals.update(
-    ROLE_LABELS=ROLE_LABELS, ROLE_HELP=ROLE_HELP, STATUS_LABELS=STATUS_LABELS, STAFF_STATUS_LABELS=STAFF_STATUS_LABELS,
+    ROLE_LABELS=ROLE_LABELS, ROLE_HELP=ROLE_HELP, STAFF_ROLE_LABELS=STAFF_ROLE_LABELS, STAFF_ROLE_HELP=STAFF_ROLE_HELP, STATUS_LABELS=STATUS_LABELS, STAFF_STATUS_LABELS=STAFF_STATUS_LABELS,
     PRIORITY_LABELS=PRIORITY_LABELS, DOC_CATEGORIES=DOC_CATEGORIES,
     invoice_state=invoice_state, INVOICE_STATE_LABELS=INVOICE_STATE_LABELS,
     invoice_total=db.invoice_total,
