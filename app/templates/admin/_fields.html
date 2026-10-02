@@ -14,11 +14,11 @@
       <input id="f-{{ name }}" name="{{ name }}" type="{{ 'email' if kind == 'email' else 'text' }}" value="{{ current }}">
     {% endif %}
     {% if errors and name in errors %}<span class="field-error" role="alert">{{ errors[name] }}</span>{% endif %}
+    {% if name in overridden %}
     <span class="source">
-      {% if name in overridden %}Set here.
-        <button class="linklike small" type="submit" form="reset-{{ name }}">Use the .env value{% if kind != 'password' %} ({{ env(name) if env(name) not in ('', None) else 'blank' }}){% endif %}</button>
-      {% else %}From .env{% endif %}
+      <button class="linklike small" type="submit" form="reset-{{ name }}">Reset to default{% if kind != 'password' %} ({{ env(name) if env(name) not in ('', None) else 'blank' }}){% endif %}</button>
     </span>
+    {% endif %}
   </div>
 {% endfor %}
 {% endmacro %}

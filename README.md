@@ -75,7 +75,7 @@ Admins see an **Admin** link in the sidebar with four sections:
 - **SwyfTech staff:** invite staff, choose Admin or Technician, send a password reset link, reset someone's authenticator, unlock them or turn them off. You can't change your own access, and there's always at least one active Admin.
 - **Sign-in and security:** shortest password, wrong tries before a pause, pause length, and how long people stay signed in (applies right away). **Sign everyone out** ends every session but yours. Authenticator apps are always required.
 
-Anything saved here overrides `.env` without a restart. Each field says whether its value is "From .env" or "Set here", with a link to go back to the `.env` value. Every change is recorded in the audit log.
+Anything saved here overrides `.env` without a restart. Fields you've changed show a **Reset to default** link that goes back to the `.env` value. Every change is recorded in the audit log.
 
 | Staff role | Requests, clients, visits, documents, guides | Invoices, reports, visit hours | Admin |
 |---|---|---|---|

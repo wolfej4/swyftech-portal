@@ -110,7 +110,7 @@ def settings_reset(request: Request, name: str, section: str = Form("business"))
     if name not in overrides.EDITABLE:
         raise HTTPException(status_code=404)
     overrides.reset(name, user["id"])
-    flash(request, "Back to the value in .env.")
+    flash(request, "Reset to the default.")
     return RedirectResponse(f"/staff/admin/{section if section in FIELDS else 'business'}", status_code=303)
 
 
