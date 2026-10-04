@@ -164,7 +164,7 @@ STAFF_EMAIL=$(whiptail --title "Your staff login" --inputbox \
   "Email for your SwyfTech staff account.\nYou'll sign in with this and set up your authenticator app." 10 64 "" 3>&1 1>&2 2>&3) || cancelled
 STAFF_NAME=$(whiptail --title "Your name" --inputbox "Your name (shown to clients on replies)" 8 58 "Jacob" 3>&1 1>&2 2>&3) || cancelled
 PUBLIC_URL=$(whiptail --title "Public address" --inputbox \
-  "The https address clients will use, e.g. https://portal.swyftech.net\n\nLeave blank to use http://<container-ip>:${var_port} for now.\nYou can change BASE_URL in .env later." 12 70 "" 3>&1 1>&2 2>&3) || cancelled
+  "The https address clients will use, e.g. https://portal.swyftech.org\n\nLeave blank to use http://<container-ip>:${var_port} for now.\nYou can change BASE_URL in .env later." 12 70 "" 3>&1 1>&2 2>&3) || cancelled
 
 ROOTFS_STORAGE=$(pick_storage rootdir "container disk") || cancelled
 TEMPLATE_STORAGE=$(pick_storage vztmpl "OS template") || cancelled

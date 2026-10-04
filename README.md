@@ -58,8 +58,8 @@ Either clone it into the container yourself (`git clone https://<token>@github.c
 
 Stripe needs a public HTTPS address to send payment confirmations, and sign-in cookies are locked to HTTPS once `BASE_URL` starts with `https://`.
 
-1. Point a hostname like `portal.swyftech.net` at the container's port 8000 with Pangolin, Nginx Proxy Manager, Caddy, or a Cloudflare Tunnel. Don't put a sign-in wall (SSO) in front of it: clients sign in to the portal itself, and Stripe, rating links and calendar subscriptions need to reach it directly.
-2. In the container, edit `/opt/swyftech-portal/.env` and set `BASE_URL=https://portal.swyftech.net`.
+1. Point a hostname like `portal.swyftech.org` at the container's port 8000 with Pangolin, Nginx Proxy Manager, Caddy, or a Cloudflare Tunnel. Don't put a sign-in wall (SSO) in front of it: clients sign in to the portal itself, and Stripe, rating links and calendar subscriptions need to reach it directly.
+2. In the container, edit `/opt/swyftech-portal/.env` and set `BASE_URL=https://portal.swyftech.org`.
 3. Run `systemctl restart swyftech-portal`.
 
 After that, always sign in through the HTTPS address. Signing in through `http://<ip>:8000` won't work because the browser won't send a secure-only cookie over plain HTTP.
@@ -110,7 +110,7 @@ For Microsoft 365: `SMTP_HOST=smtp.office365.com`, `SMTP_PORT=587`, `SMTP_TLS=st
 ## Stripe
 
 1. In the Stripe Dashboard, copy your **Secret key** into `STRIPE_SECRET_KEY`. Start with the test key (`sk_test_...`).
-2. Under **Developers > Webhooks**, add an endpoint at `https://portal.swyftech.net/stripe/webhook` with these events:
+2. Under **Developers > Webhooks**, add an endpoint at `https://portal.swyftech.org/stripe/webhook` with these events:
    - `checkout.session.completed`
    - `checkout.session.async_payment_succeeded`
 3. Copy that endpoint's **Signing secret** (`whsec_...`) into `STRIPE_WEBHOOK_SECRET`.
@@ -216,7 +216,7 @@ A few things to know:
 ## Admin commands (inside the container)
 
 ```bash
-portal-cli create-staff --email you@swyftech.net --name "Jacob"   # add --technician for a Technician
+portal-cli create-staff --email you@swyftech.org --name "Jacob"   # add --technician for a Technician
 portal-cli reset-mfa --email person@client.com       # new phone, lost backup codes
 portal-cli reset-password --email person@client.com
 portal-cli list-users

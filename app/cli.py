@@ -1,6 +1,6 @@
 """Admin commands, run inside the container:
 
-    portal-cli create-staff --email you@swyftech.net --name "Jacob"
+    portal-cli create-staff --email you@swyftech.org --name "Jacob"
     portal-cli reset-mfa --email someone@client.com
     portal-cli reset-password --email someone@example.com
     portal-cli list-users
